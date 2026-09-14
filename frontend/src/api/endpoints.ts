@@ -1,0 +1,44 @@
+export const API_BASE_URL = 'http://localhost:8000'
+
+export const ENDPOINTS = {
+  discovery: {
+    topics: '/api/discovery/topics',
+    updateTopic: (id: number) => `/api/discovery/topics/${id}`,
+    triggerScrape: '/api/discovery/scrape',
+  },
+  articles: {
+    list: '/api/articles',
+    detail: (id: number) => `/api/articles/${id}`,
+    generate: '/api/articles/generate',
+    update: (id: number) => `/api/articles/${id}`,
+    publish: (id: number) => `/api/articles/${id}/publish`,
+    regenerate: (id: number) => `/api/articles/${id}/regenerate`,
+  },
+  video: {
+    topics: '/api/video/topics',
+  },
+  posts: {
+    drafts: '/api/posts/drafts',
+    createDraft: '/api/posts/drafts',
+    detail: (id: number) => `/api/posts/drafts/${id}`,
+    updateDraft: (id: number) => `/api/posts/drafts/${id}`,
+    templates: '/api/posts/templates',
+    renderPreview: (templateName: string, text: string) =>
+      `/api/posts/render-preview?template_name=${encodeURIComponent(templateName)}&text=${encodeURIComponent(text)}`,
+    renderBackground: (templateName: string) =>
+      `/api/posts/render-background?template_name=${encodeURIComponent(templateName)}`,
+    uploadToHost: '/api/posts/upload-to-host',
+    matchScrape: (team: string) => `/api/posts/match-scrape?team=${encodeURIComponent(team)}`,
+    publish: (id: number) => `/api/posts/drafts/${id}/publish`,
+  },
+  dashboard: {
+    instagramMetrics: '/api/dashboard/instagram/metrics',
+    instagramRefresh: '/api/dashboard/instagram/refresh',
+    twitterMetrics: '/api/dashboard/twitter/metrics',
+    twitterRefresh: (username: string) => `/api/dashboard/twitter/refresh?username=${encodeURIComponent(username)}`,
+    kpiSummary: '/api/dashboard/kpi-summary',
+    twitterSuggestions: '/api/dashboard/twitter/suggestions',
+    generateTwitterSuggestions: '/api/dashboard/twitter/suggestions/generate',
+    postSuggestion: (id: number) => `/api/dashboard/twitter/suggestions/${id}/post`,
+  },
+} as const
