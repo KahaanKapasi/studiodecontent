@@ -17,7 +17,11 @@ export const ENDPOINTS = {
     regenerate: (id: number) => `/api/articles/${id}/regenerate`,
   },
   video: {
-    topics: '/api/video/topics',
+    generateTitles: '/api/video/generate-titles',
+    topics: (topicId: number) => `/api/video/topics?topic_id=${topicId}`,
+    generateScripts: '/api/video/scripts/generate',
+    scripts: (videoTopicId: number) => `/api/video/scripts?video_topic_id=${videoTopicId}`,
+    updateScript: (id: number) => `/api/video/scripts/${id}`,
   },
   posts: {
     drafts: '/api/posts/drafts',
@@ -25,10 +29,11 @@ export const ENDPOINTS = {
     detail: (id: number) => `/api/posts/drafts/${id}`,
     updateDraft: (id: number) => `/api/posts/drafts/${id}`,
     templates: '/api/posts/templates',
-    renderPreview: (templateName: string, text: string) =>
-      `/api/posts/render-preview?template_name=${encodeURIComponent(templateName)}&text=${encodeURIComponent(text)}`,
-    renderBackground: (templateName: string) =>
-      `/api/posts/render-background?template_name=${encodeURIComponent(templateName)}`,
+    aspectRatios: '/api/posts/aspect-ratios',
+    renderPreview: (templateName: string, text: string, aspectRatio: string) =>
+      `/api/posts/render-preview?template_name=${encodeURIComponent(templateName)}&text=${encodeURIComponent(text)}&aspect_ratio=${encodeURIComponent(aspectRatio)}`,
+    renderBackground: (templateName: string, aspectRatio: string) =>
+      `/api/posts/render-background?template_name=${encodeURIComponent(templateName)}&aspect_ratio=${encodeURIComponent(aspectRatio)}`,
     uploadToHost: '/api/posts/upload-to-host',
     matchScrape: (team: string) => `/api/posts/match-scrape?team=${encodeURIComponent(team)}`,
     publish: (id: number) => `/api/posts/drafts/${id}/publish`,

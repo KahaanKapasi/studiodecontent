@@ -29,10 +29,20 @@ export type VideoFormat = 'long' | 'short'
 
 export interface VideoTopic {
   id: number
-  topic_id: number
+  topic_id: number | null
   title: string
-  suggestion_score: number
-  format: VideoFormat
+  suggestion_score: number | null
+  format: VideoFormat | null
+}
+
+export type ScriptVariant = 'long' | 'short'
+
+export interface Script {
+  id: number
+  video_topic_id: number | null
+  variant: ScriptVariant | null
+  body: string | null
+  selected: boolean
 }
 
 export type PostDraftSource = 'match_scrape' | 'manual'

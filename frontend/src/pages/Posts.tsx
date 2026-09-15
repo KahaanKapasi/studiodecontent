@@ -5,7 +5,9 @@ import CarouselCanvas, { type CarouselCanvasHandle } from '../components/posts/C
 import TemplateStrip from '../components/posts/TemplateStrip'
 import OpinionsPanel from '../components/posts/OpinionsPanel'
 import InstagramPreview from '../components/posts/InstagramPreview'
-import { CANVAS_SIZE } from '../components/posts/templates'
+import LightroomPanel from '../components/posts/LightroomPanel'
+import { DEFAULT_ADJUSTMENTS, type Adjustments } from '../components/posts/adjustments'
+import { ASPECT_RATIOS, computePreviewSize, DEFAULT_ASPECT_RATIO, getAspectRatio } from '../components/posts/templates'
 import type { PostDraft } from '../types'
 
 function dataUrlToBlob(dataUrl: string): Blob {
@@ -17,6 +19,12 @@ function dataUrlToBlob(dataUrl: string): Blob {
   return new Blob([bytes], { type: mime })
 }
 
+function defaultTextPosition(aspectRatio: string) {
+  const { width, height } = getAspectRatio(aspectRatio)
+  const preview = computePreviewSize(width, height)
+  return { x: Math.round(preview.width / 2), y: Math.round(preview.height * 0.55) }
+}
+
 export default function Posts() {
   const queryClient = useQueryClient()
   const canvasRef = useRef<CarouselCanvasHandle>(null)
@@ -25,9 +33,12 @@ export default function Posts() {
   const [manualText, setManualText] = useState('')
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [templateId, setTemplateId] = useState(1)
+  const [aspectRatio, setAspectRatio] = useState(DEFAULT_ASPECT_RATIO)
   const [fontSize, setFontSize] = useState(48)
-  const [textX, setTextX] = useState(240)
-  const [textY, setTextY] = useState(400)
+  const initialPos = defaultTextPosition(DEFAULT_ASPECT_RATIO)
+  const [textX, setTextX] = useState(initialPos.x)
+  const [textY, setTextY] = useState(initialPos.y)
+  const [adjustments, setAdjustments] = useState<Adjustments>(DEFAULT_ADJUSTMENTS)
   const [canvasDataUrl, setCanvasDataUrl] = useState<string | null>(null)
   const [publishError, setPublishError] = useState('')
   const [publishedMediaId, setPublishedMediaId] = useState<string | null>(null)
@@ -85,11 +96,19 @@ export default function Posts() {
     setManualText(draft.suggested_opinion_text ?? '')
   }
 
+  function handleAspectRatioChange(id: string) {
+    setAspectRatio(id)
+    const pos = defaultTextPosition(id)
+    setTextX(pos.x)
+    setTextY(pos.y)
+  }
+
   return (
     <div>
       <h1 className="mb-1 text-xl font-semibold text-ink">Posts / Carousel Studio</h1>
       <p className="mb-6 text-sm text-faint">
-        Native canvas size {CANVAS_SIZE}×{CANVAS_SIZE} (IG square), shown scaled down below.
+        {getAspectRatio(aspectRatio).width}×{getAspectRatio(aspectRatio).height} ({aspectRatio}),
+        shown scaled down below.
       </p>
 
       <div className="flex items-start gap-6">
@@ -106,20 +125,41 @@ export default function Posts() {
         />
 
         <div className="flex-1 space-y-4">
-          <TemplateStrip selectedId={templateId} onSelect={setTemplateId} />
+          <div className="flex items-start justify-between gap-4">
+            <TemplateStrip selectedId={templateId} onSelect={setTemplateId} />
+            <div className="flex shrink-0 gap-1 rounded-lg border border-line bg-surface p-1">
+              {ASPECT_RATIOS.map((ar) => (
+                <button
+                  key={ar.id}
+                  onClick={() => handleAspectRatioChange(ar.id)}
+                  className={`rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                    aspectRatio === ar.id
+                      ? 'bg-accent text-accent-fg'
+                      : 'text-muted hover:bg-surface-2 hover:text-ink'
+                  }`}
+                >
+                  {ar.label}
+                </button>
+              ))}
+            </div>
+          </div>
 
           <div className="flex justify-center rounded-lg border border-line bg-surface p-4">
             <CarouselCanvas
               ref={canvasRef}
               templateId={templateId}
+              aspectRatio={aspectRatio}
               imageFile={imageFile}
               text={manualText}
               fontSize={fontSize}
               textX={textX}
               textY={textY}
+              adjustments={adjustments}
               onRender={setCanvasDataUrl}
             />
           </div>
+
+          <LightroomPanel value={adjustments} onChange={setAdjustments} />
 
           <div className="grid grid-cols-3 gap-3 rounded-lg border border-line bg-surface p-4 text-sm">
             <label className="flex flex-col gap-1 text-xs text-faint">

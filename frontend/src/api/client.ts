@@ -4,10 +4,12 @@ import type {
   InstagramMetricSnapshot,
   KpiSummary,
   PostDraft,
+  Script,
   Template,
   TopicCandidate,
   TwitterMetricSnapshot,
   TwitterPostSuggestion,
+  VideoTopic,
 } from '../types'
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
@@ -17,7 +19,13 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   })
   if (!res.ok) {
     const body = await res.text().catch(() => '')
-    throw new Error(`API error ${res.status}: ${path} ${body}`)
+    let detail: string | undefined
+    try {
+      detail = JSON.parse(body)?.detail
+    } catch {
+      // not JSON — fall through to the raw body
+    }
+    throw new Error(detail || body || `Request failed (${res.status})`)
   }
   return res.json() as Promise<T>
 }
@@ -54,6 +62,26 @@ export const articlesApi = {
     request<Article>(ENDPOINTS.articles.regenerate(id), { method: 'POST' }),
 }
 
+export const videoApi = {
+  generateTitles: (topicId: number) =>
+    request<VideoTopic[]>(ENDPOINTS.video.generateTitles, {
+      method: 'POST',
+      body: JSON.stringify({ topic_id: topicId }),
+    }),
+  listTopics: (topicId: number) => request<VideoTopic[]>(ENDPOINTS.video.topics(topicId)),
+  generateScripts: (videoTopicId: number) =>
+    request<Script[]>(ENDPOINTS.video.generateScripts, {
+      method: 'POST',
+      body: JSON.stringify({ video_topic_id: videoTopicId }),
+    }),
+  listScripts: (videoTopicId: number) => request<Script[]>(ENDPOINTS.video.scripts(videoTopicId)),
+  updateScript: (id: number, selected: boolean) =>
+    request<Script>(ENDPOINTS.video.updateScript(id), {
+      method: 'PATCH',
+      body: JSON.stringify({ selected }),
+    }),
+}
+
 export const postsApi = {
   listDrafts: () => request<PostDraft[]>(ENDPOINTS.posts.drafts),
   createDraft: (payload: Partial<PostDraft>) =>
@@ -65,24 +93,29 @@ export const postsApi = {
       method: 'PATCH',
       body: JSON.stringify(payload),
     }),
-  renderPreview: async (templateName: string, text: string, imageFile: File): Promise<string> => {
+  renderPreview: async (
+    templateName: string,
+    text: string,
+    aspectRatio: string,
+    imageFile: File,
+  ): Promise<string> => {
     const form = new FormData()
     form.append('image', imageFile)
-    const res = await fetch(`${API_BASE_URL}${ENDPOINTS.posts.renderPreview(templateName, text)}`, {
-      method: 'POST',
-      body: form,
-    })
+    const res = await fetch(
+      `${API_BASE_URL}${ENDPOINTS.posts.renderPreview(templateName, text, aspectRatio)}`,
+      { method: 'POST', body: form },
+    )
     if (!res.ok) throw new Error(`API error ${res.status}: render-preview`)
     const blob = await res.blob()
     return URL.createObjectURL(blob)
   },
-  renderBackground: async (templateName: string, imageFile: File): Promise<string> => {
+  renderBackground: async (templateName: string, aspectRatio: string, imageFile: File): Promise<string> => {
     const form = new FormData()
     form.append('image', imageFile)
-    const res = await fetch(`${API_BASE_URL}${ENDPOINTS.posts.renderBackground(templateName)}`, {
-      method: 'POST',
-      body: form,
-    })
+    const res = await fetch(
+      `${API_BASE_URL}${ENDPOINTS.posts.renderBackground(templateName, aspectRatio)}`,
+      { method: 'POST', body: form },
+    )
     if (!res.ok) {
       const body = await res.text().catch(() => '')
       throw new Error(`Template render failed (${res.status}): ${body}`)

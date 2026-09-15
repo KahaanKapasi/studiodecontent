@@ -1,15 +1,18 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import * as fabric from 'fabric'
 import { postsApi } from '../../api/client'
-import { CANVAS_PREVIEW_SIZE, CANVAS_SIZE, TEMPLATES } from './templates'
+import { buildFilterPipeline, type Adjustments } from './adjustments'
+import { computePreviewSize, getAspectRatio, TEMPLATES } from './templates'
 
 interface CarouselCanvasProps {
   templateId: number
+  aspectRatio: string
   imageFile: File | null
   text: string
   fontSize: number
   textX: number
   textY: number
+  adjustments: Adjustments
   onRender: (dataUrl: string) => void
 }
 
@@ -17,10 +20,8 @@ export interface CarouselCanvasHandle {
   exportFullResolution: () => string | null
 }
 
-const TEXT_BOX_WIDTH = CANVAS_PREVIEW_SIZE - 80
-
 const CarouselCanvas = forwardRef<CarouselCanvasHandle, CarouselCanvasProps>(
-  ({ templateId, imageFile, text, fontSize, textX, textY, onRender }, ref) => {
+  ({ templateId, aspectRatio, imageFile, text, fontSize, textX, textY, adjustments, onRender }, ref) => {
     const canvasElRef = useRef<HTMLCanvasElement>(null)
     const fabricRef = useRef<fabric.Canvas | null>(null)
     const bgImageRef = useRef<fabric.FabricImage | null>(null)
@@ -32,6 +33,9 @@ const CarouselCanvas = forwardRef<CarouselCanvasHandle, CarouselCanvasProps>(
     const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle')
     const [errorMessage, setErrorMessage] = useState('')
 
+    const native = getAspectRatio(aspectRatio)
+    const preview = computePreviewSize(native.width, native.height)
+
     useImperativeHandle(ref, () => ({
       exportFullResolution: () => {
         const canvas = fabricRef.current
@@ -39,16 +43,18 @@ const CarouselCanvas = forwardRef<CarouselCanvasHandle, CarouselCanvasProps>(
         return canvas.toDataURL({
           format: 'jpeg',
           quality: 0.92,
-          multiplier: CANVAS_SIZE / CANVAS_PREVIEW_SIZE,
+          multiplier: native.width / preview.width,
         })
       },
     }))
 
+    // Canvas is initialized once; dimensions/objects update via setDimensions +
+    // the effects below rather than tearing down and rebuilding fabric.Canvas.
     useEffect(() => {
       if (!canvasElRef.current) return
       const canvas = new fabric.Canvas(canvasElRef.current, {
-        width: CANVAS_PREVIEW_SIZE,
-        height: CANVAS_PREVIEW_SIZE,
+        width: preview.width,
+        height: preview.height,
         backgroundColor: '#000000',
         selection: false,
       })
@@ -57,7 +63,7 @@ const CarouselCanvas = forwardRef<CarouselCanvasHandle, CarouselCanvasProps>(
       const textObj = new fabric.Textbox(text, {
         left: textX,
         top: textY,
-        width: TEXT_BOX_WIDTH,
+        width: preview.width - 80,
         fontSize,
         fill: '#ffffff',
         fontFamily: 'sans-serif',
@@ -69,8 +75,8 @@ const CarouselCanvas = forwardRef<CarouselCanvasHandle, CarouselCanvasProps>(
       canvas.add(textObj)
 
       const watermark = new fabric.IText('@madridonomy', {
-        left: CANVAS_PREVIEW_SIZE - 16,
-        top: CANVAS_PREVIEW_SIZE - 28,
+        left: preview.width - 16,
+        top: preview.height - 28,
         fontSize: 14,
         fill: 'rgba(255,255,255,0.6)',
         originX: 'right',
@@ -88,9 +94,25 @@ const CarouselCanvas = forwardRef<CarouselCanvasHandle, CarouselCanvasProps>(
         fabricRef.current = null
         if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current)
       }
-      // canvas is initialized once; prop-driven updates happen in the effects below
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
+
+    // Aspect ratio changed: resize the live canvas and reposition the fixed
+    // objects (watermark corner, text box width) for the new shape. Absolute
+    // text X/Y are owned by the parent and reset there when shape changes.
+    useEffect(() => {
+      const canvas = fabricRef.current
+      const textObj = textObjRef.current
+      const watermark = watermarkRef.current
+      if (!canvas || !textObj || !watermark) return
+      canvas.setDimensions({ width: preview.width, height: preview.height })
+      textObj.set({ width: preview.width - 80 })
+      watermark.set({ left: preview.width - 16, top: preview.height - 28 })
+      canvas.requestRenderAll()
+      onRenderRef.current(canvas.toDataURL({ format: 'png', multiplier: 1 }))
+      // preview is derived from aspectRatio; re-running on aspectRatio alone is sufficient
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [aspectRatio])
 
     useEffect(() => {
       const canvas = fabricRef.current
@@ -126,7 +148,7 @@ const CarouselCanvas = forwardRef<CarouselCanvasHandle, CarouselCanvasProps>(
       setErrorMessage('')
 
       postsApi
-        .renderBackground(template.rendererName, imageFile)
+        .renderBackground(template.rendererName, aspectRatio, imageFile)
         .then((objectUrl) => {
           if (cancelled) {
             URL.revokeObjectURL(objectUrl)
@@ -147,11 +169,13 @@ const CarouselCanvas = forwardRef<CarouselCanvasHandle, CarouselCanvasProps>(
             img.set({
               left: 0,
               top: 0,
-              scaleX: (retina * CANVAS_PREVIEW_SIZE) / (img.width ?? CANVAS_SIZE),
-              scaleY: (retina * CANVAS_PREVIEW_SIZE) / (img.height ?? CANVAS_SIZE),
+              scaleX: (retina * preview.width) / (img.width ?? native.width),
+              scaleY: (retina * preview.height) / (img.height ?? native.height),
               selectable: false,
               evented: false,
             })
+            img.filters = buildFilterPipeline(adjustments)
+            img.applyFilters()
             bgImageRef.current = img
             canvas.insertAt(0, img)
             canvas.requestRenderAll()
@@ -168,7 +192,21 @@ const CarouselCanvas = forwardRef<CarouselCanvasHandle, CarouselCanvasProps>(
       return () => {
         cancelled = true
       }
-    }, [imageFile, templateId])
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [imageFile, templateId, aspectRatio])
+
+    // Lightroom-style adjustments — re-applies the fabric filter pipeline to
+    // the already-loaded background image without re-fetching from the backend.
+    useEffect(() => {
+      const canvas = fabricRef.current
+      const img = bgImageRef.current
+      if (!canvas || !img) return
+      img.filters = buildFilterPipeline(adjustments)
+      img.applyFilters()
+      canvas.requestRenderAll()
+      onRenderRef.current(canvas.toDataURL({ format: 'png', multiplier: 1 }))
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [adjustments])
 
     return (
       <div className="relative">
