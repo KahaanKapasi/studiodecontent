@@ -100,12 +100,25 @@ export interface TwitterPostSuggestion {
   status: TwitterSuggestionStatus
 }
 
+export interface KpiBaseline {
+  id: number
+  label: string
+  posts_per_week: number
+  avg_engagement_rate: number | null
+  created_at: string
+}
+
 export interface KpiSummary {
   since_studio_adoption: {
     articles_published: number
     posts_published: number
+    posts_per_week: number | null
   }
-  // pre-Studio baseline window is an open item (05_Dashboard_Analytics.md) —
-  // no automatic backfill is possible, null until a baseline is defined.
-  pre_studio_baseline: null
+  // Manually entered — 05_Dashboard_Analytics.md flags that this window can't
+  // be backfilled automatically. Null until one is recorded (see kpi-baseline).
+  pre_studio_baseline: {
+    label: string
+    posts_per_week: number
+    avg_engagement_rate: number | null
+  } | null
 }

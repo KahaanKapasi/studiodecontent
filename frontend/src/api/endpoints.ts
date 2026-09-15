@@ -44,6 +44,7 @@ export const ENDPOINTS = {
     twitterMetrics: '/api/dashboard/twitter/metrics',
     twitterRefresh: (username: string) => `/api/dashboard/twitter/refresh?username=${encodeURIComponent(username)}`,
     kpiSummary: '/api/dashboard/kpi-summary',
+    kpiBaseline: '/api/dashboard/kpi-baseline',
     twitterSuggestions: '/api/dashboard/twitter/suggestions',
     generateTwitterSuggestions: '/api/dashboard/twitter/suggestions/generate',
     postSuggestion: (id: number) => `/api/dashboard/twitter/suggestions/${id}/post`,

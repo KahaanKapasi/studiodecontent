@@ -1,15 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Legend,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts'
+import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { dashboardApi } from '../api/client'
 import { API_BASE_URL, ENDPOINTS } from '../api/endpoints'
 
@@ -33,13 +24,6 @@ async function refreshTwitter(username: string): Promise<unknown> {
   return res.json()
 }
 
-const DUMMY_KPI_DATA = [
-  { period: 'Jun', before: 8, after: 0 },
-  { period: 'Jul', before: 10, after: 0 },
-  { period: 'Aug', before: 9, after: 0 },
-  { period: 'Sep', before: 0, after: 22 },
-]
-
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg border border-line bg-surface p-4">
@@ -52,6 +36,10 @@ function StatCard({ label, value }: { label: string; value: string }) {
 export default function Dashboard() {
   const queryClient = useQueryClient()
   const [twitterHandle, setTwitterHandle] = useState('')
+  const [showBaselineForm, setShowBaselineForm] = useState(false)
+  const [baselineLabel, setBaselineLabel] = useState('Trailing 30 days pre-Studio')
+  const [baselinePostsPerWeek, setBaselinePostsPerWeek] = useState('')
+  const [baselineEngagement, setBaselineEngagement] = useState('')
 
   const { data: igStats } = useQuery({
     queryKey: ['dashboard', 'instagram'],
@@ -96,7 +84,25 @@ export default function Dashboard() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['dashboard', 'twitter'] }),
   })
 
-  const chartData = DUMMY_KPI_DATA
+  const baselineMutation = useMutation({
+    mutationFn: () =>
+      dashboardApi.setBaseline({
+        label: baselineLabel,
+        posts_per_week: Number(baselinePostsPerWeek),
+        avg_engagement_rate: baselineEngagement ? Number(baselineEngagement) / 100 : undefined,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'kpi-summary'] })
+      setShowBaselineForm(false)
+    },
+  })
+
+  const baseline = kpiSummary?.pre_studio_baseline
+  const afterPerWeek = kpiSummary?.since_studio_adoption.posts_per_week
+  const chartData = [
+    { period: 'Before', posts: baseline?.posts_per_week ?? 0 },
+    { period: 'After', posts: afterPerWeek ?? 0 },
+  ]
 
   return (
     <div>
@@ -159,21 +165,68 @@ export default function Dashboard() {
       </div>
 
       <div className="mb-6 rounded-lg border border-line bg-surface p-4">
-        <h2 className="mb-1 text-sm font-semibold text-ink">
-          Posting cadence — before vs. after Studio adoption
-        </h2>
+        <div className="mb-1 flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-ink">
+            Posting cadence — before vs. after Studio adoption
+          </h2>
+          <button
+            onClick={() => setShowBaselineForm((v) => !v)}
+            className="text-xs font-medium text-accent hover:text-accent-hover"
+          >
+            {baseline ? 'Update baseline' : 'Set baseline'}
+          </button>
+        </div>
         <p className="mb-4 text-xs text-faint">
-          Dummy chart data — a real before/after time series needs a manual pre-Studio baseline
-          entry, an open item per 05_Dashboard_Analytics.md. Since-adoption counts tracked so far:{' '}
-          {kpiSummary
-            ? `${kpiSummary.since_studio_adoption.articles_published} articles, ${kpiSummary.since_studio_adoption.posts_published} posts.`
-            : 'backend not reachable.'}
+          {baseline
+            ? `Baseline: "${baseline.label}". Posts/week tracked since Studio adoption: ${afterPerWeek ?? '—'}.`
+            : 'No pre-Studio baseline recorded yet — the "Before" bar reads 0 until you set one (this can\'t be backfilled automatically, per 05_Dashboard_Analytics.md).'}
         </p>
-        <ResponsiveContainer width="100%" height={280}>
+
+        {showBaselineForm && (
+          <div className="mb-4 grid grid-cols-3 gap-3 rounded-md border border-line bg-app p-3">
+            <label className="flex flex-col gap-1 text-xs text-faint">
+              Label
+              <input
+                value={baselineLabel}
+                onChange={(e) => setBaselineLabel(e.target.value)}
+                className="rounded-md border border-line bg-surface px-2 py-1 text-ink"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-xs text-faint">
+              Posts / week
+              <input
+                type="number"
+                step="0.1"
+                value={baselinePostsPerWeek}
+                onChange={(e) => setBaselinePostsPerWeek(e.target.value)}
+                className="rounded-md border border-line bg-surface px-2 py-1 text-ink"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-xs text-faint">
+              Avg engagement % (optional)
+              <input
+                type="number"
+                step="0.1"
+                value={baselineEngagement}
+                onChange={(e) => setBaselineEngagement(e.target.value)}
+                className="rounded-md border border-line bg-surface px-2 py-1 text-ink"
+              />
+            </label>
+            <button
+              onClick={() => baselineMutation.mutate()}
+              disabled={baselineMutation.isPending || !baselinePostsPerWeek}
+              className="col-span-3 rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-accent-fg hover:bg-accent-hover disabled:opacity-50"
+            >
+              {baselineMutation.isPending ? 'Saving…' : 'Save baseline'}
+            </button>
+          </div>
+        )}
+
+        <ResponsiveContainer width="100%" height={220}>
           <BarChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--line-color)" />
             <XAxis dataKey="period" stroke="var(--faint-color)" fontSize={12} />
-            <YAxis stroke="var(--faint-color)" fontSize={12} />
+            <YAxis stroke="var(--faint-color)" fontSize={12} label={{ value: 'posts/week', angle: -90, position: 'insideLeft', fill: 'var(--faint-color)', fontSize: 11 }} />
             <Tooltip
               contentStyle={{
                 background: 'var(--surface-bg)',
@@ -182,9 +235,11 @@ export default function Dashboard() {
                 color: 'var(--ink-color)',
               }}
             />
-            <Legend wrapperStyle={{ fontSize: 12, color: 'var(--muted-color)' }} />
-            <Bar dataKey="before" fill="var(--faint-color)" name="Before" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="after" fill="var(--accent-color)" name="After" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="posts" name="Posts/week" radius={[4, 4, 0, 0]}>
+              {chartData.map((entry) => (
+                <Cell key={entry.period} fill={entry.period === 'Before' ? 'var(--faint-color)' : 'var(--accent-color)'} />
+              ))}
+            </Bar>
           </BarChart>
         </ResponsiveContainer>
       </div>

@@ -2,6 +2,7 @@ import { API_BASE_URL, ENDPOINTS } from './endpoints'
 import type {
   Article,
   InstagramMetricSnapshot,
+  KpiBaseline,
   KpiSummary,
   PostDraft,
   Script,
@@ -144,6 +145,9 @@ export const dashboardApi = {
     return list.at(-1)
   },
   kpiSummary: () => request<KpiSummary>(ENDPOINTS.dashboard.kpiSummary),
+  getBaseline: () => request<KpiBaseline | null>(ENDPOINTS.dashboard.kpiBaseline),
+  setBaseline: (payload: { label: string; posts_per_week: number; avg_engagement_rate?: number }) =>
+    request<KpiBaseline>(ENDPOINTS.dashboard.kpiBaseline, { method: 'PUT', body: JSON.stringify(payload) }),
   twitterSuggestions: () =>
     request<TwitterPostSuggestion[]>(ENDPOINTS.dashboard.twitterSuggestions),
   generateTwitterSuggestions: () =>
