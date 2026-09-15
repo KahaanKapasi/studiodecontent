@@ -44,13 +44,13 @@ export default function Discovery() {
     <div>
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-neutral-100">Discovery</h1>
-          <p className="mt-1 text-sm text-neutral-500">Topic candidates surfaced from scraping.</p>
+          <h1 className="text-xl font-semibold text-ink">Discovery</h1>
+          <p className="mt-1 text-sm text-faint">Topic candidates surfaced from scraping.</p>
         </div>
         <button
           onClick={() => scrapeMutation.mutate()}
           disabled={scrapeMutation.isPending}
-          className="rounded-md bg-amber-500 px-4 py-2 text-sm font-medium text-neutral-950 transition-colors hover:bg-amber-400 disabled:opacity-50"
+          className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-fg transition-colors hover:bg-accent-hover disabled:opacity-50"
         >
           {scrapeMutation.isPending ? 'Triggering…' : 'Trigger scrape now'}
         </button>
@@ -60,7 +60,7 @@ export default function Discovery() {
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as TopicStatus | 'all')}
-          className="rounded-md border border-neutral-800 bg-neutral-900 px-3 py-1.5 text-sm text-neutral-200"
+          className="rounded-md border border-line bg-surface px-3 py-1.5 text-sm text-ink"
         >
           <option value="all">All statuses</option>
           <option value="new">New</option>
@@ -70,7 +70,7 @@ export default function Discovery() {
         <select
           value={suitableFilter}
           onChange={(e) => setSuitableFilter(e.target.value as SuitableFor | 'all')}
-          className="rounded-md border border-neutral-800 bg-neutral-900 px-3 py-1.5 text-sm text-neutral-200"
+          className="rounded-md border border-line bg-surface px-3 py-1.5 text-sm text-ink"
         >
           <option value="all">All types</option>
           <option value="article">Article</option>
@@ -79,10 +79,10 @@ export default function Discovery() {
         </select>
       </div>
 
-      <div className="rounded-lg border border-neutral-800 bg-neutral-900/40 p-4">
-        {isLoading && <p className="py-8 text-center text-sm text-neutral-500">Loading topics…</p>}
+      <div className="rounded-lg border border-line bg-surface p-4">
+        {isLoading && <p className="py-8 text-center text-sm text-faint">Loading topics…</p>}
         {isError && (
-          <p className="py-8 text-center text-sm text-neutral-500">
+          <p className="py-8 text-center text-sm text-faint">
             Could not reach backend at /api/discovery/topics. Is it running?
           </p>
         )}

@@ -42,9 +42,9 @@ const DUMMY_KPI_DATA = [
 
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-neutral-800 bg-neutral-900/40 p-4">
-      <div className="text-xs uppercase tracking-wide text-neutral-500">{label}</div>
-      <div className="mt-1 text-2xl font-semibold text-neutral-100">{value}</div>
+    <div className="rounded-lg border border-line bg-surface p-4">
+      <div className="text-xs uppercase tracking-wide text-faint">{label}</div>
+      <div className="mt-1 text-2xl font-semibold text-ink">{value}</div>
     </div>
   )
 }
@@ -100,21 +100,21 @@ export default function Dashboard() {
 
   return (
     <div>
-      <h1 className="mb-6 text-xl font-semibold text-neutral-100">Dashboard</h1>
+      <h1 className="mb-6 text-xl font-semibold text-ink">Dashboard</h1>
 
       <div className="mb-6">
         <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-neutral-200">Instagram</h2>
+          <h2 className="text-sm font-semibold text-ink">Instagram</h2>
           <button
             onClick={() => igRefreshMutation.mutate()}
             disabled={igRefreshMutation.isPending}
-            className="rounded-md border border-neutral-700 px-3 py-1.5 text-xs font-medium text-neutral-200 hover:bg-neutral-800 disabled:opacity-50"
+            className="rounded-md border border-line-strong px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface-2 disabled:opacity-50"
           >
             {igRefreshMutation.isPending ? 'Refreshing…' : 'Refresh'}
           </button>
         </div>
         {igRefreshMutation.isError && (
-          <p className="mb-2 text-xs text-neutral-500">{(igRefreshMutation.error as Error).message}</p>
+          <p className="mb-2 text-xs text-faint">{(igRefreshMutation.error as Error).message}</p>
         )}
         <div className="grid grid-cols-3 gap-4">
           <StatCard label="IG Followers" value={String(igStats?.followers ?? 0)} />
@@ -128,25 +128,25 @@ export default function Dashboard() {
 
       <div className="mb-6">
         <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-neutral-200">X (Twitter)</h2>
+          <h2 className="text-sm font-semibold text-ink">X (Twitter)</h2>
           <div className="flex items-center gap-2">
             <input
               value={twitterHandle}
               onChange={(e) => setTwitterHandle(e.target.value)}
               placeholder="handle (no @)"
-              className="rounded-md border border-neutral-800 bg-neutral-900 px-2.5 py-1.5 text-xs text-neutral-200 placeholder:text-neutral-600"
+              className="rounded-md border border-line bg-surface px-2.5 py-1.5 text-xs text-ink placeholder:text-faint"
             />
             <button
               onClick={() => twRefreshMutation.mutate()}
               disabled={twRefreshMutation.isPending || !twitterHandle.trim()}
-              className="rounded-md border border-neutral-700 px-3 py-1.5 text-xs font-medium text-neutral-200 hover:bg-neutral-800 disabled:opacity-50"
+              className="rounded-md border border-line-strong px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface-2 disabled:opacity-50"
             >
               {twRefreshMutation.isPending ? 'Refreshing…' : 'Refresh'}
             </button>
           </div>
         </div>
         {twRefreshMutation.isError && (
-          <p className="mb-2 text-xs text-neutral-500">{(twRefreshMutation.error as Error).message}</p>
+          <p className="mb-2 text-xs text-faint">{(twRefreshMutation.error as Error).message}</p>
         )}
         <div className="grid grid-cols-3 gap-4">
           <StatCard label="X Followers" value={String(twStats?.followers ?? 0)} />
@@ -158,11 +158,11 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="mb-6 rounded-lg border border-neutral-800 bg-neutral-900/40 p-4">
-        <h2 className="mb-1 text-sm font-semibold text-neutral-200">
+      <div className="mb-6 rounded-lg border border-line bg-surface p-4">
+        <h2 className="mb-1 text-sm font-semibold text-ink">
           Posting cadence — before vs. after Studio adoption
         </h2>
-        <p className="mb-4 text-xs text-neutral-500">
+        <p className="mb-4 text-xs text-faint">
           Dummy chart data — a real before/after time series needs a manual pre-Studio baseline
           entry, an open item per 05_Dashboard_Analytics.md. Since-adoption counts tracked so far:{' '}
           {kpiSummary
@@ -171,44 +171,49 @@ export default function Dashboard() {
         </p>
         <ResponsiveContainer width="100%" height={280}>
           <BarChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#262626" />
-            <XAxis dataKey="period" stroke="#a3a3a3" fontSize={12} />
-            <YAxis stroke="#a3a3a3" fontSize={12} />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--line-color)" />
+            <XAxis dataKey="period" stroke="var(--faint-color)" fontSize={12} />
+            <YAxis stroke="var(--faint-color)" fontSize={12} />
             <Tooltip
-              contentStyle={{ background: '#171717', border: '1px solid #262626', fontSize: 12 }}
+              contentStyle={{
+                background: 'var(--surface-bg)',
+                border: '1px solid var(--line-color)',
+                fontSize: 12,
+                color: 'var(--ink-color)',
+              }}
             />
-            <Legend wrapperStyle={{ fontSize: 12 }} />
-            <Bar dataKey="before" fill="#525252" name="Before" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="after" fill="#f59e0b" name="After" radius={[4, 4, 0, 0]} />
+            <Legend wrapperStyle={{ fontSize: 12, color: 'var(--muted-color)' }} />
+            <Bar dataKey="before" fill="var(--faint-color)" name="Before" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="after" fill="var(--accent-color)" name="After" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
 
-      <div className="rounded-lg border border-neutral-800 bg-neutral-900/40 p-4">
+      <div className="rounded-lg border border-line bg-surface p-4">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-neutral-200">Twitter Post Suggestions</h2>
+          <h2 className="text-sm font-semibold text-ink">Twitter Post Suggestions</h2>
           <button
             onClick={() => generateMutation.mutate()}
             disabled={generateMutation.isPending}
-            className="rounded-md border border-neutral-700 px-3 py-1.5 text-xs font-medium text-neutral-200 hover:bg-neutral-800 disabled:opacity-50"
+            className="rounded-md border border-line-strong px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface-2 disabled:opacity-50"
           >
             {generateMutation.isPending ? 'Generating…' : 'Generate suggestions'}
           </button>
         </div>
         {suggestions.length === 0 && (
-          <p className="text-xs text-neutral-500">No suggestions yet — backend not wired.</p>
+          <p className="text-xs text-faint">No suggestions yet — backend not wired.</p>
         )}
         <ul className="space-y-2">
           {suggestions.map((s) => (
             <li
               key={s.id}
-              className="flex items-center justify-between rounded-md border border-neutral-800 bg-neutral-950 px-3 py-2"
+              className="flex items-center justify-between rounded-md border border-line bg-app px-3 py-2"
             >
-              <span className="text-sm text-neutral-300">{s.draft_text}</span>
+              <span className="text-sm text-muted">{s.draft_text}</span>
               <button
                 onClick={() => postMutation.mutate(s.id)}
                 disabled={postMutation.isPending || s.status !== 'suggested'}
-                className="rounded-md bg-amber-500 px-3 py-1.5 text-xs font-medium text-neutral-950 hover:bg-amber-400 disabled:opacity-50"
+                className="rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-accent-fg hover:bg-accent-hover disabled:opacity-50"
               >
                 {s.status === 'posted' ? 'Posted' : 'Post'}
               </button>

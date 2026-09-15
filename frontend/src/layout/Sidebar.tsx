@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom'
+import ThemeSwitcher from '../components/ThemeSwitcher'
 
 const NAV_ITEMS = [
   { to: '/discovery', label: 'Discovery' },
@@ -10,9 +11,9 @@ const NAV_ITEMS = [
 
 export default function Sidebar() {
   return (
-    <nav className="w-56 shrink-0 border-r border-neutral-800 bg-neutral-950 p-4">
-      <div className="mb-8 px-2 text-lg font-semibold text-neutral-100">Content Studio</div>
-      <ul className="space-y-1">
+    <nav className="flex w-56 shrink-0 flex-col border-r border-line bg-surface p-4">
+      <div className="mb-8 px-2 text-lg font-semibold text-ink">Content Studio</div>
+      <ul className="flex-1 space-y-1">
         {NAV_ITEMS.map((item) => (
           <li key={item.to}>
             <NavLink
@@ -20,8 +21,8 @@ export default function Sidebar() {
               className={({ isActive }) =>
                 `block rounded-md px-3 py-2 text-sm transition-colors ${
                   isActive
-                    ? 'bg-amber-500/10 text-amber-400'
-                    : 'text-neutral-400 hover:bg-neutral-900 hover:text-neutral-100'
+                    ? 'bg-accent/10 text-accent'
+                    : 'text-muted hover:bg-surface-2 hover:text-ink'
                 }`
               }
             >
@@ -30,6 +31,7 @@ export default function Sidebar() {
           </li>
         ))}
       </ul>
+      <ThemeSwitcher />
     </nav>
   )
 }

@@ -87,8 +87,8 @@ export default function Posts() {
 
   return (
     <div>
-      <h1 className="mb-1 text-xl font-semibold text-neutral-100">Posts / Carousel Studio</h1>
-      <p className="mb-6 text-sm text-neutral-500">
+      <h1 className="mb-1 text-xl font-semibold text-ink">Posts / Carousel Studio</h1>
+      <p className="mb-6 text-sm text-faint">
         Native canvas size {CANVAS_SIZE}×{CANVAS_SIZE} (IG square), shown scaled down below.
       </p>
 
@@ -108,7 +108,7 @@ export default function Posts() {
         <div className="flex-1 space-y-4">
           <TemplateStrip selectedId={templateId} onSelect={setTemplateId} />
 
-          <div className="flex justify-center rounded-lg border border-neutral-800 bg-neutral-900/40 p-4">
+          <div className="flex justify-center rounded-lg border border-line bg-surface p-4">
             <CarouselCanvas
               ref={canvasRef}
               templateId={templateId}
@@ -121,58 +121,58 @@ export default function Posts() {
             />
           </div>
 
-          <div className="grid grid-cols-3 gap-3 rounded-lg border border-neutral-800 bg-neutral-900/40 p-4 text-sm">
-            <label className="flex flex-col gap-1 text-xs text-neutral-500">
+          <div className="grid grid-cols-3 gap-3 rounded-lg border border-line bg-surface p-4 text-sm">
+            <label className="flex flex-col gap-1 text-xs text-faint">
               Text size
               <input
                 type="number"
                 value={fontSize}
                 onChange={(e) => setFontSize(Number(e.target.value))}
-                className="rounded-md border border-neutral-800 bg-neutral-950 px-2 py-1 text-neutral-100"
+                className="rounded-md border border-line bg-app px-2 py-1 text-ink"
               />
             </label>
-            <label className="flex flex-col gap-1 text-xs text-neutral-500">
+            <label className="flex flex-col gap-1 text-xs text-faint">
               Text X
               <input
                 type="number"
                 value={textX}
                 onChange={(e) => setTextX(Number(e.target.value))}
-                className="rounded-md border border-neutral-800 bg-neutral-950 px-2 py-1 text-neutral-100"
+                className="rounded-md border border-line bg-app px-2 py-1 text-ink"
               />
             </label>
-            <label className="flex flex-col gap-1 text-xs text-neutral-500">
+            <label className="flex flex-col gap-1 text-xs text-faint">
               Text Y
               <input
                 type="number"
                 value={textY}
                 onChange={(e) => setTextY(Number(e.target.value))}
-                className="rounded-md border border-neutral-800 bg-neutral-950 px-2 py-1 text-neutral-100"
+                className="rounded-md border border-line bg-app px-2 py-1 text-ink"
               />
             </label>
           </div>
 
-          <div className="flex items-center gap-3 rounded-lg border border-neutral-800 bg-neutral-900/40 p-4">
+          <div className="flex items-center gap-3 rounded-lg border border-line bg-surface p-4">
             <button
               onClick={() => saveMutation.mutate()}
               disabled={saveMutation.isPending}
-              className="rounded-md border border-neutral-700 px-4 py-2 text-sm font-medium text-neutral-200 hover:bg-neutral-800 disabled:opacity-50"
+              className="rounded-md border border-line-strong px-4 py-2 text-sm font-medium text-ink hover:bg-surface-2 disabled:opacity-50"
             >
               {saveMutation.isPending ? 'Saving…' : draftId ? 'Update Draft' : 'Save Draft'}
             </button>
             <button
               onClick={() => publishMutation.mutate()}
               disabled={publishMutation.isPending || !imageFile}
-              className="rounded-md bg-amber-500 px-4 py-2 text-sm font-medium text-neutral-950 hover:bg-amber-400 disabled:opacity-50"
+              className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-fg hover:bg-accent-hover disabled:opacity-50"
               title={!imageFile ? 'Add an image first' : undefined}
             >
               {publishMutation.isPending ? 'Publishing…' : 'Publish to Instagram'}
             </button>
             {publishedMediaId && (
-              <span className="text-xs text-emerald-400">Published — media id {publishedMediaId}</span>
+              <span className="text-xs text-success">Published — media id {publishedMediaId}</span>
             )}
-            {publishError && <span className="text-xs text-red-400">{publishError}</span>}
+            {publishError && <span className="text-xs text-danger">{publishError}</span>}
           </div>
-          <p className="text-xs text-neutral-600">
+          <p className="text-xs text-faint">
             Image crop/position is a placeholder for now — drag the image directly on the canvas;
             a dedicated crop tool is a follow-up.
           </p>
