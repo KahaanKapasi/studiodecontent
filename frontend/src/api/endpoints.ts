@@ -3,6 +3,10 @@ export const API_BASE_URL =
   (import.meta.env.PROD ? 'https://contentstudio-be.onrender.com' : 'http://localhost:8000')
 
 export const ENDPOINTS = {
+  auth: {
+    status: '/api/auth/status',
+    check: '/api/auth/check',
+  },
   discovery: {
     topics: '/api/discovery/topics',
     updateTopic: (id: number) => `/api/discovery/topics/${id}`,

@@ -2,6 +2,7 @@ import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 're
 import * as fabric from 'fabric'
 import { postsApi } from '../../api/client'
 import { buildFilterPipeline, type Adjustments } from './adjustments'
+import { applyFrame, type Frame } from './frame'
 import { computePreviewSize, getAspectRatio, TEMPLATES } from './templates'
 
 interface CarouselCanvasProps {
@@ -13,6 +14,7 @@ interface CarouselCanvasProps {
   textX: number
   textY: number
   adjustments: Adjustments
+  frame: Frame
   onRender: (dataUrl: string) => void
 }
 
@@ -21,7 +23,7 @@ export interface CarouselCanvasHandle {
 }
 
 const CarouselCanvas = forwardRef<CarouselCanvasHandle, CarouselCanvasProps>(
-  ({ templateId, aspectRatio, imageFile, text, fontSize, textX, textY, adjustments, onRender }, ref) => {
+  ({ templateId, aspectRatio, imageFile, text, fontSize, textX, textY, adjustments, frame, onRender }, ref) => {
     const canvasElRef = useRef<HTMLCanvasElement>(null)
     const fabricRef = useRef<fabric.Canvas | null>(null)
     const bgImageRef = useRef<fabric.FabricImage | null>(null)
@@ -30,6 +32,8 @@ const CarouselCanvas = forwardRef<CarouselCanvasHandle, CarouselCanvasProps>(
     const onRenderRef = useRef(onRender)
     onRenderRef.current = onRender
     const objectUrlRef = useRef<string | null>(null)
+    const frameRef = useRef(frame)
+    frameRef.current = frame
     const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle')
     const [errorMessage, setErrorMessage] = useState('')
 
@@ -160,20 +164,8 @@ const CarouselCanvas = forwardRef<CarouselCanvasHandle, CarouselCanvasProps>(
           return fabric.FabricImage.fromURL(objectUrl).then((img) => {
             if (cancelled) return
             if (bgImageRef.current) canvas.remove(bgImageRef.current)
-            // Empirically, a FabricImage loaded from a freshly-created blob: URL
-            // renders at half the intended size on a retina display unless the
-            // canvas's retina multiplier is folded into the scale explicitly —
-            // object-space math alone (scale relative to canvas.width/height)
-            // is not enough here, even though fabric's docs say it should be.
-            const retina = canvas.getRetinaScaling ? canvas.getRetinaScaling() : 1
-            img.set({
-              left: 0,
-              top: 0,
-              scaleX: (retina * preview.width) / (img.width ?? native.width),
-              scaleY: (retina * preview.height) / (img.height ?? native.height),
-              selectable: false,
-              evented: false,
-            })
+            img.set({ selectable: false, evented: false })
+            applyFrame(img, frameRef.current, preview.width, preview.height)
             img.filters = buildFilterPipeline(adjustments)
             img.applyFilters()
             bgImageRef.current = img
@@ -194,6 +186,18 @@ const CarouselCanvas = forwardRef<CarouselCanvasHandle, CarouselCanvasProps>(
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [imageFile, templateId, aspectRatio])
+
+    // Crop & frame (zoom/pan) — re-crops the loaded background without refetching.
+    useEffect(() => {
+      const canvas = fabricRef.current
+      const img = bgImageRef.current
+      if (!canvas || !img) return
+      applyFrame(img, frame, preview.width, preview.height)
+      img.setCoords()
+      canvas.requestRenderAll()
+      onRenderRef.current(canvas.toDataURL({ format: 'png', multiplier: 1 }))
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [frame])
 
     // Lightroom-style adjustments — re-applies the fabric filter pipeline to
     // the already-loaded background image without re-fetching from the backend.

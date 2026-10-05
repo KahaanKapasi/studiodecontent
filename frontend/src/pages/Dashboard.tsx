@@ -1,26 +1,18 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { dashboardApi } from '../api/client'
-import { API_BASE_URL, ENDPOINTS } from '../api/endpoints'
+import { apiFetch, dashboardApi, errorMessageFrom } from '../api/client'
+import { ENDPOINTS } from '../api/endpoints'
 
 async function refreshInstagram(): Promise<unknown> {
-  const res = await fetch(`${API_BASE_URL}${ENDPOINTS.dashboard.instagramRefresh}`, { method: 'POST' })
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}))
-    throw new Error(body.detail ?? `Instagram refresh failed (${res.status})`)
-  }
+  const res = await apiFetch(ENDPOINTS.dashboard.instagramRefresh, { method: 'POST' })
+  if (!res.ok) throw new Error(await errorMessageFrom(res))
   return res.json()
 }
 
 async function refreshTwitter(username: string): Promise<unknown> {
-  const res = await fetch(`${API_BASE_URL}${ENDPOINTS.dashboard.twitterRefresh(username)}`, {
-    method: 'POST',
-  })
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}))
-    throw new Error(body.detail ?? `Twitter refresh failed (${res.status})`)
-  }
+  const res = await apiFetch(ENDPOINTS.dashboard.twitterRefresh(username), { method: 'POST' })
+  if (!res.ok) throw new Error(await errorMessageFrom(res))
   return res.json()
 }
 

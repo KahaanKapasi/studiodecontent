@@ -6,6 +6,8 @@ import TemplateStrip from '../components/posts/TemplateStrip'
 import OpinionsPanel from '../components/posts/OpinionsPanel'
 import InstagramPreview from '../components/posts/InstagramPreview'
 import LightroomPanel from '../components/posts/LightroomPanel'
+import FramePanel from '../components/posts/FramePanel'
+import { DEFAULT_FRAME, type Frame } from '../components/posts/frame'
 import { DEFAULT_ADJUSTMENTS, type Adjustments } from '../components/posts/adjustments'
 import { ASPECT_RATIOS, computePreviewSize, DEFAULT_ASPECT_RATIO, getAspectRatio } from '../components/posts/templates'
 import type { PostDraft } from '../types'
@@ -39,6 +41,7 @@ export default function Posts() {
   const [textX, setTextX] = useState(initialPos.x)
   const [textY, setTextY] = useState(initialPos.y)
   const [adjustments, setAdjustments] = useState<Adjustments>(DEFAULT_ADJUSTMENTS)
+  const [frame, setFrame] = useState<Frame>(DEFAULT_FRAME)
   const [canvasDataUrl, setCanvasDataUrl] = useState<string | null>(null)
   const [publishError, setPublishError] = useState('')
   const [publishedMediaId, setPublishedMediaId] = useState<string | null>(null)
@@ -119,7 +122,10 @@ export default function Posts() {
           onPickSuggestion={handlePickSuggestion}
           manualText={manualText}
           onManualTextChange={setManualText}
-          onImageSelected={setImageFile}
+          onImageSelected={(file) => {
+            setImageFile(file)
+            setFrame(DEFAULT_FRAME)
+          }}
           onSuggestOpinions={(team) => suggestMutation.mutate(team)}
           isSuggesting={suggestMutation.isPending}
         />
@@ -155,9 +161,12 @@ export default function Posts() {
               textX={textX}
               textY={textY}
               adjustments={adjustments}
+              frame={frame}
               onRender={setCanvasDataUrl}
             />
           </div>
+
+          <FramePanel value={frame} onChange={setFrame} />
 
           <LightroomPanel value={adjustments} onChange={setAdjustments} />
 
@@ -213,8 +222,8 @@ export default function Posts() {
             {publishError && <span className="text-xs text-danger">{publishError}</span>}
           </div>
           <p className="text-xs text-faint">
-            Image crop/position is a placeholder for now — drag the image directly on the canvas;
-            a dedicated crop tool is a follow-up.
+            Zoom in past 1× to crop the photo; position sliders move the framed area. Text can be
+            dragged directly on the canvas.
           </p>
         </div>
 

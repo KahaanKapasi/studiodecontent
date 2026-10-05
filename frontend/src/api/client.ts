@@ -1,4 +1,5 @@
 import { API_BASE_URL, ENDPOINTS } from './endpoints'
+import { authHeaders, setAccessPassword, UNAUTHORIZED_EVENT } from '../auth'
 import type {
   Article,
   InstagramMetricSnapshot,
@@ -13,21 +14,31 @@ import type {
   VideoTopic,
 } from '../types'
 
-async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE_URL}${path}`, {
-    headers: options?.body instanceof FormData ? undefined : { 'Content-Type': 'application/json' },
-    ...options,
-  })
-  if (!res.ok) {
-    const body = await res.text().catch(() => '')
-    let detail: string | undefined
-    try {
-      detail = JSON.parse(body)?.detail
-    } catch {
-      // not JSON — fall through to the raw body
-    }
-    throw new Error(detail || body || `Request failed (${res.status})`)
+export async function apiFetch(path: string, options?: RequestInit): Promise<Response> {
+  const headers: Record<string, string> = { ...authHeaders() }
+  if (!(options?.body instanceof FormData)) headers['Content-Type'] = 'application/json'
+  const res = await fetch(`${API_BASE_URL}${path}`, { ...options, headers })
+  if (res.status === 401) {
+    setAccessPassword('')
+    window.dispatchEvent(new Event(UNAUTHORIZED_EVENT))
   }
+  return res
+}
+
+export async function errorMessageFrom(res: Response): Promise<string> {
+  const body = await res.text().catch(() => '')
+  let detail: string | undefined
+  try {
+    detail = JSON.parse(body)?.detail
+  } catch {
+    // not JSON — fall through to the raw body
+  }
+  return detail || body || `Request failed (${res.status})`
+}
+
+async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  const res = await apiFetch(path, options)
+  if (!res.ok) throw new Error(await errorMessageFrom(res))
   return res.json() as Promise<T>
 }
 
@@ -102,25 +113,22 @@ export const postsApi = {
   ): Promise<string> => {
     const form = new FormData()
     form.append('image', imageFile)
-    const res = await fetch(
-      `${API_BASE_URL}${ENDPOINTS.posts.renderPreview(templateName, text, aspectRatio)}`,
-      { method: 'POST', body: form },
-    )
-    if (!res.ok) throw new Error(`API error ${res.status}: render-preview`)
+    const res = await apiFetch(ENDPOINTS.posts.renderPreview(templateName, text, aspectRatio), {
+      method: 'POST',
+      body: form,
+    })
+    if (!res.ok) throw new Error(await errorMessageFrom(res))
     const blob = await res.blob()
     return URL.createObjectURL(blob)
   },
   renderBackground: async (templateName: string, aspectRatio: string, imageFile: File): Promise<string> => {
     const form = new FormData()
     form.append('image', imageFile)
-    const res = await fetch(
-      `${API_BASE_URL}${ENDPOINTS.posts.renderBackground(templateName, aspectRatio)}`,
-      { method: 'POST', body: form },
-    )
-    if (!res.ok) {
-      const body = await res.text().catch(() => '')
-      throw new Error(`Template render failed (${res.status}): ${body}`)
-    }
+    const res = await apiFetch(ENDPOINTS.posts.renderBackground(templateName, aspectRatio), {
+      method: 'POST',
+      body: form,
+    })
+    if (!res.ok) throw new Error(await errorMessageFrom(res))
     const blob = await res.blob()
     return URL.createObjectURL(blob)
   },
