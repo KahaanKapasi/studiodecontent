@@ -2,6 +2,11 @@ import { API_BASE_URL, ENDPOINTS } from './endpoints'
 import { authHeaders, setAccessPassword, UNAUTHORIZED_EVENT } from '../auth'
 import type {
   Article,
+  CreateGenerationRequest,
+  ImprovePromptRequest,
+  ImprovePromptResult,
+  VideoGeneration,
+  VideoProviderInfo,
   InstagramMetricSnapshot,
   KpiBaseline,
   KpiSummary,
@@ -92,6 +97,34 @@ export const videoApi = {
       method: 'PATCH',
       body: JSON.stringify({ selected }),
     }),
+
+  // ---- prompt in -> video out ----
+  providers: () => request<VideoProviderInfo[]>(ENDPOINTS.video.providers),
+  improvePrompt: (payload: ImprovePromptRequest) =>
+    request<ImprovePromptResult>(ENDPOINTS.video.improvePrompt, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  createGeneration: (payload: CreateGenerationRequest) =>
+    request<VideoGeneration>(ENDPOINTS.video.generations, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  listGenerations: (limit = 50) =>
+    request<VideoGeneration[]>(`${ENDPOINTS.video.generations}?limit=${limit}`),
+  getGeneration: (id: number) => request<VideoGeneration>(ENDPOINTS.video.generation(id)),
+  deleteGeneration: async (id: number): Promise<void> => {
+    const res = await apiFetch(ENDPOINTS.video.generation(id), { method: 'DELETE' })
+    if (!res.ok) throw new Error(await errorMessageFrom(res))
+  },
+  retryGeneration: (id: number) =>
+    request<VideoGeneration>(ENDPOINTS.video.retryGeneration(id), { method: 'POST' }),
+  /** The file endpoint needs the access header, so it is fetched as a Blob. */
+  fetchFileBlob: async (id: number): Promise<Blob> => {
+    const res = await apiFetch(ENDPOINTS.video.generationFile(id))
+    if (!res.ok) throw new Error(await errorMessageFrom(res))
+    return res.blob()
+  },
 }
 
 export const postsApi = {

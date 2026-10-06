@@ -122,3 +122,76 @@ export interface KpiSummary {
     avg_engagement_rate: number | null
   } | null
 }
+
+// ---- Video generation (prompt in -> video out) ----
+
+export type VideoProviderId = 'veo' | 'higgsfield'
+
+export interface VideoModelInfo {
+  id: string
+  label: string
+  aspect_ratios: string[]
+  durations: number[]
+  resolutions: string[]
+  price_per_second_usd: Record<string, number> | null
+  notes: string | null
+}
+
+export interface VideoProviderInfo {
+  id: VideoProviderId
+  label: string
+  configured: boolean
+  missing_keys: string[]
+  default_model: string
+  models: VideoModelInfo[]
+}
+
+export interface VideoSource {
+  title: string
+  url: string
+}
+
+export interface ImprovePromptRequest {
+  idea: string
+  research: boolean
+  aspect_ratio: string
+  duration_seconds: number
+}
+
+export interface ImprovePromptResult {
+  prompt: string
+  sources: VideoSource[]
+  research_notes: string | null
+}
+
+export interface CreateGenerationRequest {
+  prompt: string
+  original_idea?: string
+  provider: string
+  model: string
+  aspect_ratio: string
+  duration_seconds: number
+  resolution: string
+  research_sources?: VideoSource[]
+}
+
+export type GenerationStatus = 'queued' | 'running' | 'succeeded' | 'failed'
+
+export interface VideoGeneration {
+  id: number
+  prompt: string
+  original_idea: string | null
+  provider: string
+  model: string
+  aspect_ratio: string
+  duration_seconds: number
+  resolution: string
+  status: GenerationStatus
+  error: string | null
+  has_file: boolean
+  video_url: string | null
+  research_sources: VideoSource[]
+  estimated_cost_usd: number | null
+  created_at: string
+  completed_at: string | null
+}

@@ -11,15 +11,15 @@ const NAV_ITEMS = [
 
 export default function Sidebar() {
   return (
-    <nav className="flex w-56 shrink-0 flex-col border-r border-line bg-surface p-4">
-      <div className="mb-8 px-2 text-lg font-semibold text-ink">Content Studio</div>
-      <ul className="flex-1 space-y-1">
+    <nav className="order-last flex w-full shrink-0 items-center border-t border-line bg-surface p-2 md:order-none md:w-56 md:flex-col md:items-stretch md:border-r md:border-t-0 md:p-4">
+      <div className="mb-8 hidden px-2 text-lg font-semibold text-ink md:block">Content Studio</div>
+      <ul className="flex flex-1 gap-1 md:block md:space-y-1">
         {NAV_ITEMS.map((item) => (
-          <li key={item.to}>
+          <li key={item.to} className="flex-1 md:flex-none">
             <NavLink
               to={item.to}
               className={({ isActive }) =>
-                `block rounded-md px-3 py-2 text-sm transition-colors ${
+                `block rounded-md px-1 py-2.5 text-center text-sm transition-colors md:px-3 md:text-left ${
                   isActive
                     ? 'bg-accent/10 text-accent'
                     : 'text-muted hover:bg-surface-2 hover:text-ink'
@@ -31,7 +31,9 @@ export default function Sidebar() {
           </li>
         ))}
       </ul>
-      <ThemeSwitcher />
+      <div className="hidden md:block">
+        <ThemeSwitcher />
+      </div>
     </nav>
   )
 }

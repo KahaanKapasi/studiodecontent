@@ -99,3 +99,18 @@ body {
 * {
   border-color: var(--line-color);
 }
+
+/* Video generation: subtle indeterminate progress + status pulse */
+@keyframes video-indeterminate {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(300%); }
+}
+@keyframes video-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+.video-indeterminate { animation: video-indeterminate 1.6s ease-in-out infinite; }
+.video-pulse { animation: video-pulse 1.4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .video-indeterminate, .video-pulse { animation: none; }
+}

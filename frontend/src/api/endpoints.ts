@@ -26,6 +26,12 @@ export const ENDPOINTS = {
     generateScripts: '/api/video/scripts/generate',
     scripts: (videoTopicId: number) => `/api/video/scripts?video_topic_id=${videoTopicId}`,
     updateScript: (id: number) => `/api/video/scripts/${id}`,
+    providers: '/api/video/providers',
+    improvePrompt: '/api/video/prompt/improve',
+    generations: '/api/video/generations',
+    generation: (id: number) => `/api/video/generations/${id}`,
+    retryGeneration: (id: number) => `/api/video/generations/${id}/retry`,
+    generationFile: (id: number) => `/api/video/generations/${id}/file`,
   },
   posts: {
     drafts: '/api/posts/drafts',

@@ -4,9 +4,9 @@ import Sidebar from './Sidebar'
 
 export default function AppShell() {
   return (
-    <div className="flex h-screen bg-app text-ink">
+    <div className="flex h-dvh flex-col bg-app text-ink md:flex-row">
       <Sidebar />
-      <main className="flex-1 overflow-y-auto p-8">
+      <main className="min-h-0 min-w-0 flex-1 overflow-y-auto p-4 md:p-8">
         <Suspense fallback={<p className="text-sm text-faint">Loading…</p>}>
           <Outlet />
         </Suspense>
