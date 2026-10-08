@@ -2,6 +2,9 @@ import { API_BASE_URL, ENDPOINTS } from './endpoints'
 import { authHeaders, setAccessPassword, UNAUTHORIZED_EVENT } from '../auth'
 import type {
   Article,
+  CostEstimate,
+  CostSummary,
+  PriceRow,
   CreateGenerationRequest,
   ImprovePromptRequest,
   ImprovePromptResult,
@@ -251,4 +254,14 @@ export const dashboardApi = {
     request<TwitterPostSuggestion[]>(ENDPOINTS.dashboard.generateTwitterSuggestions, { method: 'POST' }),
   postSuggestion: (id: number) =>
     request<TwitterPostSuggestion>(ENDPOINTS.dashboard.postSuggestion(id), { method: 'POST' }),
+}
+
+export const costsApi = {
+  estimate: (action: string, params: Record<string, unknown> = {}) =>
+    request<CostEstimate>(ENDPOINTS.costs.estimate, {
+      method: 'POST',
+      body: JSON.stringify({ action, params }),
+    }),
+  summary: (days = 30) => request<CostSummary>(ENDPOINTS.costs.summary(days)),
+  prices: () => request<{ as_of: string; prices: PriceRow[] }>(ENDPOINTS.costs.prices),
 }

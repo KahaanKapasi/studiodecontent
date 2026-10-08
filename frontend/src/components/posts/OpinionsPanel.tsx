@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { PostDraft } from '../../types'
+import CostedButton from '../cost/CostedButton'
 
 interface OpinionsPanelProps {
   suggestions: PostDraft[]
@@ -46,13 +47,15 @@ export default function OpinionsPanel({
             placeholder="Team"
             className="w-0 flex-1 rounded-md border border-line bg-surface px-2 py-1 text-xs text-ink"
           />
-          <button
+          <CostedButton
+            action="posts.match_scrape"
             onClick={() => onSuggestOpinions(team)}
             disabled={isSuggesting || !team.trim()}
-            className="shrink-0 rounded-md border border-line-strong px-2 py-1 text-xs font-medium text-ink hover:bg-surface-2 disabled:opacity-50"
+            wrapperClassName="flex shrink-0 flex-col items-end"
+            className="rounded-md border border-line-strong px-2 py-1 text-xs font-medium text-ink hover:bg-surface-2 disabled:opacity-50"
           >
             {isSuggesting ? 'Scraping…' : 'Suggest'}
-          </button>
+          </CostedButton>
         </div>
         <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
           {isLoading && <p className="text-xs text-faint">Loading suggestions…</p>}

@@ -4,6 +4,7 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { articlesApi, discoveryApi } from '../api/client'
 import TopicList from '../components/TopicList'
 import Badge from '../components/Badge'
+import CostedButton from '../components/cost/CostedButton'
 import type { Article, TopicCandidate } from '../types'
 
 export default function Articles() {
@@ -38,9 +39,11 @@ export default function Articles() {
     onSuccess: (article) => setDraft(article),
   })
 
+  // Selecting a topic no longer spends money by itself: the "Generate draft" button (with its cost hint) does.
   function handleSelectTopic(topic: TopicCandidate) {
     setSelectedTopic(topic)
-    generateMutation.mutate(topic.id)
+    setDraft(null)
+    generateMutation.reset()
   }
 
   function handleCopyToClipboard() {
@@ -82,6 +85,18 @@ export default function Articles() {
       <div className="flex-1 rounded-lg border border-line bg-surface p-6">
         {!selectedTopic && (
           <p className="text-sm text-faint">Select a topic on the left to generate a draft.</p>
+        )}
+        {selectedTopic && !draft && !generateMutation.isPending && (
+          <div className="space-y-3">
+            <div className="text-sm font-medium text-ink">{selectedTopic.title}</div>
+            <CostedButton
+              action="articles.generate"
+              onClick={() => generateMutation.mutate(selectedTopic.id)}
+              className="min-h-10 rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-fg hover:bg-accent-hover disabled:opacity-50"
+            >
+              Generate draft
+            </CostedButton>
+          </div>
         )}
         {selectedTopic && generateMutation.isPending && (
           <p className="text-sm text-faint">Generating draft…</p>
@@ -173,13 +188,14 @@ export default function Articles() {
               >
                 Copy to Clipboard
               </button>
-              <button
+              <CostedButton
+                action="articles.regenerate"
                 onClick={() => regenerateMutation.mutate(draft.id)}
                 disabled={regenerateMutation.isPending}
                 className="rounded-md border border-line-strong px-4 py-2 text-sm font-medium text-ink hover:bg-surface-2 disabled:opacity-50"
               >
                 {regenerateMutation.isPending ? 'Regenerating…' : 'Regenerate'}
-              </button>
+              </CostedButton>
             </div>
           </div>
         )}

@@ -1,3 +1,4 @@
+import CostedButton from '../components/cost/CostedButton'
 import { useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { postsApi } from '../api/client'
@@ -208,14 +209,15 @@ export default function Posts() {
             >
               {saveMutation.isPending ? 'Saving…' : draftId ? 'Update Draft' : 'Save Draft'}
             </button>
-            <button
+            <CostedButton
+              action="posts.publish"
               onClick={() => publishMutation.mutate()}
               disabled={publishMutation.isPending || !imageFile}
               className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-fg hover:bg-accent-hover disabled:opacity-50"
               title={!imageFile ? 'Add an image first' : undefined}
             >
               {publishMutation.isPending ? 'Publishing…' : 'Publish to Instagram'}
-            </button>
+            </CostedButton>
             {publishedMediaId && (
               <span className="text-xs text-success">Published — media id {publishedMediaId}</span>
             )}

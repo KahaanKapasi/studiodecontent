@@ -44,6 +44,11 @@ export const ENDPOINTS = {
     asset: (id: number, name: string) =>
       `/api/studio/projects/${id}/assets/${encodeURIComponent(name)}`,
   },
+  costs: {
+    estimate: '/api/costs/estimate',
+    summary: (days: number) => `/api/costs/summary?days=${days}`,
+    prices: '/api/costs/prices',
+  },
   posts: {
     drafts: '/api/posts/drafts',
     createDraft: '/api/posts/drafts',

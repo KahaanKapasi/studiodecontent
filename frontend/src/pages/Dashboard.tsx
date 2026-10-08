@@ -3,6 +3,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { apiFetch, dashboardApi, errorMessageFrom } from '../api/client'
 import { ENDPOINTS } from '../api/endpoints'
+import CostedButton from '../components/cost/CostedButton'
+import SpendCard from '../components/cost/SpendCard'
 
 async function refreshInstagram(): Promise<unknown> {
   const res = await apiFetch(ENDPOINTS.dashboard.instagramRefresh, { method: 'POST' })
@@ -100,16 +102,19 @@ export default function Dashboard() {
     <div>
       <h1 className="mb-6 text-xl font-semibold text-ink">Dashboard</h1>
 
+      <SpendCard />
+
       <div className="mb-6">
         <div className="mb-2 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-ink">Instagram</h2>
-          <button
+          <CostedButton
+            action="dashboard.instagram_refresh"
             onClick={() => igRefreshMutation.mutate()}
             disabled={igRefreshMutation.isPending}
             className="rounded-md border border-line-strong px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface-2 disabled:opacity-50"
           >
             {igRefreshMutation.isPending ? 'Refreshing…' : 'Refresh'}
-          </button>
+          </CostedButton>
         </div>
         {igRefreshMutation.isError && (
           <p className="mb-2 text-xs text-faint">{(igRefreshMutation.error as Error).message}</p>
@@ -134,13 +139,14 @@ export default function Dashboard() {
               placeholder="handle (no @)"
               className="rounded-md border border-line bg-surface px-2.5 py-1.5 text-xs text-ink placeholder:text-faint"
             />
-            <button
+            <CostedButton
+              action="dashboard.twitter_refresh"
               onClick={() => twRefreshMutation.mutate()}
               disabled={twRefreshMutation.isPending || !twitterHandle.trim()}
               className="rounded-md border border-line-strong px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface-2 disabled:opacity-50"
             >
               {twRefreshMutation.isPending ? 'Refreshing…' : 'Refresh'}
-            </button>
+            </CostedButton>
           </div>
         </div>
         {twRefreshMutation.isError && (
@@ -239,13 +245,14 @@ export default function Dashboard() {
       <div className="rounded-lg border border-line bg-surface p-4">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-ink">Twitter Post Suggestions</h2>
-          <button
+          <CostedButton
+            action="dashboard.twitter_suggestions"
             onClick={() => generateMutation.mutate()}
             disabled={generateMutation.isPending}
             className="rounded-md border border-line-strong px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface-2 disabled:opacity-50"
           >
             {generateMutation.isPending ? 'Generating…' : 'Generate suggestions'}
-          </button>
+          </CostedButton>
         </div>
         {suggestions.length === 0 && (
           <p className="text-xs text-faint">No suggestions yet — backend not wired.</p>
@@ -256,14 +263,17 @@ export default function Dashboard() {
               key={s.id}
               className="flex items-center justify-between rounded-md border border-line bg-app px-3 py-2"
             >
-              <span className="text-sm text-muted">{s.draft_text}</span>
-              <button
+              <span className="min-w-0 text-sm text-muted">{s.draft_text}</span>
+              <CostedButton
+                action="dashboard.twitter_post"
+                params={{ text: s.draft_text }}
                 onClick={() => postMutation.mutate(s.id)}
                 disabled={postMutation.isPending || s.status !== 'suggested'}
+                wrapperClassName="ml-3 flex shrink-0 items-center gap-2"
                 className="rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-accent-fg hover:bg-accent-hover disabled:opacity-50"
               >
                 {s.status === 'posted' ? 'Posted' : 'Post'}
-              </button>
+              </CostedButton>
             </li>
           ))}
         </ul>

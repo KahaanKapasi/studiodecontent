@@ -192,6 +192,8 @@ export interface VideoGeneration {
   video_url: string | null
   research_sources: VideoSource[]
   estimated_cost_usd: number | null
+  estimated_cost_low_usd?: number | null
+  estimated_cost_high_usd?: number | null
   created_at: string
   completed_at: string | null
 }
@@ -286,6 +288,62 @@ export interface StudioProject {
   has_file: boolean
   video_url: string | null
   estimated_cost_usd: number | null
+  estimated_cost_low_usd?: number | null
+  estimated_cost_high_usd?: number | null
   created_at: string
   completed_at: string | null
+}
+
+// --- Cost awareness (docs/11_Cost_Awareness.md) ---
+
+export type CostConfidence = 'official' | 'mixed' | 'unknown'
+
+export interface CostBreakdownRow {
+  item: string
+  qty_low: number
+  qty_high: number
+  unit: string
+  unit_usd: number | null
+  low_usd: number
+  high_usd: number
+  confidence?: 'official' | 'third-party' | 'unknown'
+  verified_on?: string | null
+  source_url?: string | null
+}
+
+export interface CostEstimate {
+  action: string
+  low_usd: number
+  high_usd: number
+  currency: 'USD'
+  free: boolean
+  confidence: CostConfidence
+  breakdown: CostBreakdownRow[]
+  notes: string[]
+  prices_verified_on?: string | null
+}
+
+export interface CostSummary {
+  days: number
+  total_usd: number
+  estimated_usd: number
+  event_count: number
+  by_service: { service: string; usd: number }[]
+  by_action: { action: string; count: number; usd: number; estimated_count: number }[]
+  daily: { date: string; usd: number }[]
+}
+
+export interface PriceRow {
+  id: string
+  service: string
+  unit: string
+  usd: number | null
+  low_usd: number | null
+  high_usd: number | null
+  source_url: string
+  verified_on: string
+  confidence: 'official' | 'third-party' | 'unknown'
+  effective_from: string | null
+  note: string | null
+  upcoming: { effective_from: string; usd: number | null }[]
 }

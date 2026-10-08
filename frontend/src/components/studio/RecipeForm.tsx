@@ -1,3 +1,4 @@
+import CostedButton from '../cost/CostedButton'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { studioApi } from '../../api/client'
@@ -91,16 +92,24 @@ export default function RecipeForm({
     })
   }
 
+  // Plan-first runs only pay for the Gemini planning call here; the render cost is shown at Approve.
+  const costParams = useMemo(
+    () => ({
+      engine: engine.id,
+      recipe: recipe.id,
+      params: buildParams(recipe.fields, state),
+      plan_only: recipe.paid && !autoApprove,
+      trend_seconds: state.durations['trend_video'],
+    }),
+    [engine.id, recipe.id, recipe.fields, recipe.paid, state, autoApprove],
+  )
   const errorCount = Object.keys(errors).length
   const blocked = !recipe.configured
   const busy = create.isPending
 
   return (
     <form
-      onSubmit={(e) => {
-        e.preventDefault()
-        submit()
-      }}
+      onSubmit={(e) => e.preventDefault()}
       noValidate
       className="space-y-5"
     >
@@ -159,13 +168,16 @@ export default function RecipeForm({
       </div>
 
       <div className="space-y-3">
-        <button
-          type="submit"
+        <CostedButton
+          action="studio.project"
+          params={costParams}
+          onClick={submit}
           disabled={blocked || busy}
-          className="min-h-11 w-full rounded-md bg-accent px-4 py-2.5 text-sm font-semibold text-accent-fg hover:bg-accent-hover disabled:opacity-50"
+          wrapperClassName="flex w-full flex-wrap items-center gap-2"
+          className="min-h-11 flex-1 rounded-md bg-accent px-4 py-2.5 text-sm font-semibold text-accent-fg hover:bg-accent-hover disabled:opacity-50"
         >
           {busy ? 'Starting…' : autoApprove ? 'Create video' : 'Plan video'}
-        </button>
+        </CostedButton>
         {blocked && (
           <p className="text-sm text-muted">Add {recipe.missing_keys.join(', ')} to the server environment to enable this.</p>
         )}

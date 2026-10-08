@@ -1,3 +1,4 @@
+import { usdRange } from '../cost/format'
 import { studioApi } from '../../api/client'
 import type { StudioPreview, StudioProject } from '../../types'
 import { formatUsd } from '../video/format'
@@ -101,7 +102,11 @@ export default function ReviewPanel({ project }: { project: StudioProject }) {
       <p className="text-sm text-muted">
         Estimated cost{' '}
         <span className="font-semibold tabular-nums text-ink">
-          {project.estimated_cost_usd !== null ? `≈ ${formatUsd(project.estimated_cost_usd)}` : 'unknown'}
+          {project.estimated_cost_usd === null
+            ? 'unknown'
+            : project.estimated_cost_low_usd != null && project.estimated_cost_high_usd != null
+              ? `≈ ${usdRange(project.estimated_cost_low_usd, project.estimated_cost_high_usd)}`
+              : `≈ ${formatUsd(project.estimated_cost_usd)}`}
         </span>
         . Nothing expensive runs until you approve.
       </p>

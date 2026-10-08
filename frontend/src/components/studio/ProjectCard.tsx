@@ -1,3 +1,5 @@
+import CostedButton from '../cost/CostedButton'
+import { usdRange } from '../cost/format'
 import { useState } from 'react'
 import { studioApi } from '../../api/client'
 import type { StudioEngineInfo, StudioProject } from '../../types'
@@ -190,9 +192,20 @@ export default function ProjectCard({
       <div className="flex flex-wrap items-center gap-2 border-t border-line pt-3">
         {review && (
           <>
-            <button type="button" onClick={() => run('approve', project.id)} disabled={busy} className={primaryBtn}>
+            <CostedButton
+              action="studio.project"
+              params={{
+                engine: project.engine,
+                recipe: project.recipe,
+                params: project.params,
+                estimated_usd: project.estimated_cost_usd,
+              }}
+              onClick={() => run('approve', project.id)}
+              disabled={busy}
+              className={primaryBtn}
+            >
               {pending === 'approve' ? 'Approving…' : 'Approve'}
-            </button>
+            </CostedButton>
             <button type="button" onClick={() => run('replan', project.id)} disabled={busy} className={secondaryBtn}>
               {pending === 'replan' ? 'Re-planning…' : 'Re-plan'}
             </button>
@@ -205,7 +218,12 @@ export default function ProjectCard({
         )}
 
         {project.estimated_cost_usd !== null && !review && (
-          <span className="text-xs font-medium tabular-nums text-muted">≈ {formatUsd(project.estimated_cost_usd)}</span>
+          <span className="text-xs font-medium tabular-nums text-muted">
+            ≈{' '}
+            {project.estimated_cost_low_usd != null && project.estimated_cost_high_usd != null
+              ? usdRange(project.estimated_cost_low_usd, project.estimated_cost_high_usd)
+              : formatUsd(project.estimated_cost_usd)}
+          </span>
         )}
 
         <div className="ml-auto flex items-center gap-2">

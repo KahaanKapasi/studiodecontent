@@ -1,3 +1,4 @@
+import CostedButton from '../cost/CostedButton'
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { discoveryApi, videoApi } from '../../api/client'
@@ -66,13 +67,15 @@ export default function IdeasScripts({ onUseAsPrompt }: { onUseAsPrompt: (text: 
     setSelectedVideoTopic(null)
     setScripts([])
     setVideoTopics([])
-    generateTitlesMutation.mutate(topic.id)
+    generateTitlesMutation.reset()
+    generateScriptsMutation.reset()
   }
 
+  // Picking a topic / title only selects it; the costed buttons below start the paid Gemini calls.
   function handleSelectVideoTopic(vt: VideoTopic) {
     setSelectedVideoTopic(vt)
     setScripts([])
-    generateScriptsMutation.mutate(vt.id)
+    generateScriptsMutation.reset()
   }
 
   const activeScript = scripts.find((s) => s.variant === activeTab)
@@ -103,6 +106,19 @@ export default function IdeasScripts({ onUseAsPrompt }: { onUseAsPrompt: (text: 
 
         {selectedTopic && generateTitlesMutation.isPending && (
           <p className="text-sm text-faint">Generating video titles…</p>
+        )}
+
+        {selectedTopic && !generateTitlesMutation.isPending && videoTopics.length === 0 && (
+          <div className="space-y-3">
+            <div className="text-sm font-medium text-ink">{selectedTopic.title}</div>
+            <CostedButton
+              action="video.titles"
+              onClick={() => generateTitlesMutation.mutate(selectedTopic.id)}
+              className="min-h-10 rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-fg hover:bg-accent-hover disabled:opacity-50"
+            >
+              Generate video titles
+            </CostedButton>
+          </div>
         )}
 
         {selectedTopic && generateTitlesMutation.isError && (
@@ -142,6 +158,16 @@ export default function IdeasScripts({ onUseAsPrompt }: { onUseAsPrompt: (text: 
                 ))}
               </ul>
             </div>
+
+            {selectedVideoTopic && !generateScriptsMutation.isPending && scripts.length === 0 && (
+              <CostedButton
+                action="video.scripts"
+                onClick={() => generateScriptsMutation.mutate(selectedVideoTopic.id)}
+                className="min-h-10 rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-fg hover:bg-accent-hover disabled:opacity-50"
+              >
+                Write scripts
+              </CostedButton>
+            )}
 
             {selectedVideoTopic && generateScriptsMutation.isPending && (
               <p className="text-sm text-faint">Generating long-form and short-form scripts…</p>
@@ -205,13 +231,14 @@ export default function IdeasScripts({ onUseAsPrompt }: { onUseAsPrompt: (text: 
                   >
                     Use as prompt
                   </button>
-                  <button
+                  <CostedButton
+                    action="video.scripts"
                     onClick={() => selectedVideoTopic && generateScriptsMutation.mutate(selectedVideoTopic.id)}
                     disabled={generateScriptsMutation.isPending}
                     className="rounded-md border border-line-strong px-4 py-2 text-sm font-medium text-ink hover:bg-surface-2 disabled:opacity-50"
                   >
                     {generateScriptsMutation.isPending ? 'Regenerating…' : 'Regenerate scripts'}
-                  </button>
+                  </CostedButton>
                 </div>
 
                 {selectedScript && (

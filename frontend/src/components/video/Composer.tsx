@@ -3,12 +3,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { videoApi } from '../../api/client'
 import type { ImprovePromptResult, VideoGeneration } from '../../types'
 import ProviderPicker from './ProviderPicker'
-import { estimateCost, formatUsd } from './format'
+import CostedButton from '../cost/CostedButton'
+import { hintLabel } from '../cost/format'
+import { useCostEstimate } from '../cost/useCostEstimate'
 import { GENERATIONS_KEY } from './keys'
 import { DEFAULT_PREFS, resolveSelection, type SelectionPrefs } from './selection'
-
-/** Above this estimate, Generate needs an explicit inline confirmation. */
-const CONFIRM_THRESHOLD_USD = 1
 
 export interface Prefill {
   text: string
@@ -75,7 +74,6 @@ export default function Composer({
   const [improved, setImproved] = useState<ImprovePromptResult | null>(null)
   const [finalPrompt, setFinalPrompt] = useState('')
   const [prefs, setPrefs] = useState<SelectionPrefs>(DEFAULT_PREFS)
-  const [confirmKey, setConfirmKey] = useState<string | null>(null)
   const [justQueued, setJustQueued] = useState(false)
 
   // Pre-fill from "Use as prompt" — adjusting state during render (no effect needed).
@@ -85,7 +83,6 @@ export default function Composer({
     setIdea(prefill.text)
     setImproved(null)
     setFinalPrompt('')
-    setConfirmKey(null)
     setJustQueued(false)
   }
 
@@ -102,7 +99,6 @@ export default function Composer({
     onSuccess: (result) => {
       setImproved(result)
       setFinalPrompt(result.prompt)
-      setConfirmKey(null)
     },
   })
 
@@ -114,7 +110,6 @@ export default function Composer({
         ...(old ?? []).filter((g) => g.id !== created.id),
       ])
       queryClient.invalidateQueries({ queryKey: GENERATIONS_KEY })
-      setConfirmKey(null)
       setJustQueued(true)
       onCreated?.()
     },
@@ -122,19 +117,15 @@ export default function Composer({
 
   const usingImproved = improved !== null
   const promptToSend = (usingImproved ? finalPrompt : idea).trim()
-  const cost = selection ? estimateCost(selection.model, selection.resolution, selection.duration) : null
-  const needsConfirm = cost === null || cost >= CONFIRM_THRESHOLD_USD
-  const currentKey = selection
-    ? [
-        selection.provider.id,
-        selection.model.id,
-        selection.aspect,
-        selection.duration,
-        selection.resolution,
-        promptToSend,
-      ].join('|')
-    : ''
-  const confirming = confirmKey !== null && confirmKey === currentKey
+  const costParams = selection
+    ? {
+        provider: selection.provider.id,
+        model: selection.model.id,
+        duration_seconds: selection.duration,
+        resolution: selection.resolution,
+      }
+    : null
+  const { estimate: costEstimate } = useCostEstimate('video.generation', costParams ?? {}, costParams !== null)
 
   let blocker: string | null = null
   if (providersQuery.isLoading) blocker = 'Loading providers…'
@@ -166,10 +157,6 @@ export default function Composer({
     if (!selection || blocker) return
     setJustQueued(false)
     createMutation.reset()
-    if (needsConfirm && !confirming) {
-      setConfirmKey(currentKey)
-      return
-    }
     submit()
   }
 
@@ -184,7 +171,7 @@ export default function Composer({
   }
 
   const costLine = selection
-    ? `${cost !== null ? `≈ ${formatUsd(cost)}` : 'Cost unknown'} · ${selection.model.label} · ${selection.duration}s · ${selection.resolution}`
+    ? `${costEstimate ? hintLabel(costEstimate) : 'Estimating cost…'} · ${selection.model.label} · ${selection.duration}s · ${selection.resolution}`
     : null
 
   return (
@@ -216,8 +203,9 @@ export default function Composer({
             label="Research on the web"
             hint="Ground the prompt in current facts"
           />
-          <button
-            type="button"
+          <CostedButton
+            action="video.prompt_improve"
+            params={{ research }}
             onClick={onImprove}
             disabled={!idea.trim() || !selection || improveMutation.isPending}
             className="min-h-10 rounded-md border border-line-strong px-4 py-2 text-sm font-medium text-ink hover:bg-surface-2 disabled:opacity-50"
@@ -229,7 +217,7 @@ export default function Composer({
               : improved
                 ? 'Improve again'
                 : 'Improve prompt'}
-          </button>
+          </CostedButton>
         </div>
         {improveMutation.isError && (
           <p role="alert" className="text-sm text-danger">
@@ -254,7 +242,6 @@ export default function Composer({
               onClick={() => {
                 setImproved(null)
                 setFinalPrompt('')
-                setConfirmKey(null)
               }}
               className="text-xs text-faint underline-offset-2 hover:text-ink hover:underline"
             >
@@ -338,47 +325,25 @@ export default function Composer({
           <div>
             <div className="text-lg font-semibold tracking-tight text-ink">{costLine}</div>
             <p className="mt-0.5 text-xs text-faint">
-              {cost !== null
-                ? 'Estimate based on provider list prices. Real money is spent when you generate.'
-                : 'No price on file for this combination. Real money may be spent.'}
+              {costEstimate && costEstimate.confidence === 'unknown'
+                ? 'No reliable price for this combination. Real money may be spent.'
+                : 'Estimate based on provider list prices. Real money is spent when you generate.'}
             </p>
           </div>
         )}
 
-        {confirming ? (
-          <div className="flex flex-wrap items-center gap-3 rounded-lg border border-accent/40 bg-accent/5 p-3">
-            <span className="min-w-0 flex-1 text-sm text-ink">
-              {cost !== null ? `This will cost ≈ ${formatUsd(cost)} — confirm` : 'Cost unknown — confirm'}
-            </span>
-            <button
-              type="button"
-              onClick={submit}
-              disabled={createMutation.isPending}
-              className="min-h-10 rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-fg hover:bg-accent-hover disabled:opacity-50"
-            >
-              {createMutation.isPending ? 'Starting…' : 'Confirm & generate'}
-            </button>
-            <button
-              type="button"
-              onClick={() => setConfirmKey(null)}
-              disabled={createMutation.isPending}
-              className="min-h-10 rounded-md border border-line-strong px-4 py-2 text-sm font-medium text-ink hover:bg-surface-2 disabled:opacity-50"
-            >
-              Cancel
-            </button>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={onGenerateClick}
-            disabled={!!blocker || createMutation.isPending}
-            className="min-h-11 w-full rounded-md bg-accent px-4 py-2.5 text-sm font-semibold text-accent-fg hover:bg-accent-hover disabled:opacity-50"
-          >
-            {createMutation.isPending ? 'Starting…' : 'Generate video'}
-          </button>
-        )}
+        <CostedButton
+          action="video.generation"
+          params={costParams ?? {}}
+          onClick={onGenerateClick}
+          disabled={!!blocker || createMutation.isPending || !costParams}
+          wrapperClassName="flex w-full flex-wrap items-center gap-2"
+          className="min-h-11 flex-1 rounded-md bg-accent px-4 py-2.5 text-sm font-semibold text-accent-fg hover:bg-accent-hover disabled:opacity-50"
+        >
+          {createMutation.isPending ? 'Starting…' : 'Generate video'}
+        </CostedButton>
 
-        {blocker && !confirming && <p className="text-sm text-muted">{blocker}</p>}
+        {blocker && <p className="text-sm text-muted">{blocker}</p>}
         {createMutation.isError && (
           <p role="alert" className="text-sm text-danger">
             {errText(createMutation.error, 'Could not start the generation.')}

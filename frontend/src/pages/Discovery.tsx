@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { discoveryApi } from '../api/client'
 import TopicList from '../components/TopicList'
+import CostedButton from '../components/cost/CostedButton'
 import type { SuitableFor, TopicCandidate, TopicStatus } from '../types'
 
 export default function Discovery() {
@@ -47,13 +48,14 @@ export default function Discovery() {
           <h1 className="text-xl font-semibold text-ink">Discovery</h1>
           <p className="mt-1 text-sm text-faint">Topic candidates surfaced from scraping.</p>
         </div>
-        <button
+        <CostedButton
+          action="discovery.scrape"
           onClick={() => scrapeMutation.mutate()}
           disabled={scrapeMutation.isPending}
           className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-fg transition-colors hover:bg-accent-hover disabled:opacity-50"
         >
           {scrapeMutation.isPending ? 'Triggering…' : 'Trigger scrape now'}
-        </button>
+        </CostedButton>
       </div>
 
       <div className="mb-4 flex gap-3">
