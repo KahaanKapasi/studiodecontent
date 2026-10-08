@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import type { GenerationStatus, VideoGeneration } from '../../types'
 import {
   formatElapsed,
@@ -10,6 +10,7 @@ import {
   ratioValue,
   truncate,
 } from './format'
+import { useNow, useSeen } from './hooks'
 import { useVideoBlob } from './useVideoBlob'
 
 const STATUS_STYLE: Record<GenerationStatus, string> = {
@@ -41,39 +42,6 @@ function Chip({ children }: { children: string }) {
   return (
     <span className="rounded-full bg-surface-2 px-2.5 py-0.5 text-xs font-medium text-muted">{children}</span>
   )
-}
-
-/** Ticks once a second while `active` so elapsed timers stay live. */
-function useNow(active: boolean) {
-  const [now, setNow] = useState(() => Date.now())
-  useEffect(() => {
-    if (!active) return
-    const t = setInterval(() => setNow(Date.now()), 1000)
-    return () => clearInterval(t)
-  }, [active])
-  return now
-}
-
-/** True once the element has come within `margin` of the viewport (stays true afterwards). */
-function useSeen(margin = '300px') {
-  const ref = useRef<HTMLDivElement>(null)
-  const [seen, setSeen] = useState(false)
-  useEffect(() => {
-    const el = ref.current
-    if (!el || seen) return
-    const io = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((e) => e.isIntersecting)) {
-          setSeen(true)
-          io.disconnect()
-        }
-      },
-      { rootMargin: margin },
-    )
-    io.observe(el)
-    return () => io.disconnect()
-  }, [seen, margin])
-  return { ref, seen }
 }
 
 interface GenerationCardProps {

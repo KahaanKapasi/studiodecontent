@@ -33,6 +33,17 @@ export const ENDPOINTS = {
     retryGeneration: (id: number) => `/api/video/generations/${id}/retry`,
     generationFile: (id: number) => `/api/video/generations/${id}/file`,
   },
+  studio: {
+    engines: '/api/studio/engines',
+    projects: '/api/studio/projects',
+    project: (id: number) => `/api/studio/projects/${id}`,
+    approve: (id: number) => `/api/studio/projects/${id}/approve`,
+    replan: (id: number) => `/api/studio/projects/${id}/replan`,
+    retry: (id: number) => `/api/studio/projects/${id}/retry`,
+    file: (id: number) => `/api/studio/projects/${id}/file`,
+    asset: (id: number, name: string) =>
+      `/api/studio/projects/${id}/assets/${encodeURIComponent(name)}`,
+  },
   posts: {
     drafts: '/api/posts/drafts',
     createDraft: '/api/posts/drafts',

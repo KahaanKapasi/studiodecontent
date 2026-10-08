@@ -2,12 +2,13 @@ import { useState } from 'react'
 import Composer, { type Prefill } from '../components/video/Composer'
 import GenerationGallery from '../components/video/GenerationGallery'
 import IdeasScripts from '../components/video/IdeasScripts'
+import StudioTab from '../components/studio/StudioTab'
 import Segmented from '../components/video/Segmented'
 
-type VideoTab = 'generate' | 'ideas'
+type VideoTab = 'studio' | 'generate' | 'ideas'
 
 export default function Video() {
-  const [tab, setTab] = useState<VideoTab>('generate')
+  const [tab, setTab] = useState<VideoTab>('studio')
   const [prefill, setPrefill] = useState<Prefill>({ text: '', nonce: 0 })
 
   function handleUseAsPrompt(text: string) {
@@ -31,9 +32,11 @@ export default function Video() {
         <div>
           <h1 className="text-xl font-semibold text-ink">Video</h1>
           <p className="mt-1 text-sm text-faint">
-            {tab === 'generate'
-              ? 'Describe a video, pick a model, and get an MP4 back.'
-              : 'Pick a topic, get title and script ideas, and send one to Generate.'}
+            {tab === 'studio'
+              ? 'Pick a recipe, review the plan, and render a finished video.'
+              : tab === 'generate'
+                ? 'Describe a single clip, pick a model, and get an MP4 back.'
+                : 'Pick a topic, get title and script ideas, and send one to Clip.'}
           </p>
         </div>
         <Segmented
@@ -42,13 +45,18 @@ export default function Video() {
           value={tab}
           onChange={setTab}
           options={[
-            { value: 'generate', label: 'Generate' },
+            { value: 'studio', label: 'Studio' },
+            { value: 'generate', label: 'Clip' },
             { value: 'ideas', label: 'Ideas & scripts' },
           ]}
         />
       </div>
 
-      {/* Both panes stay mounted so drafts, polling and loaded videos survive tab switches. */}
+      {/* All panes stay mounted so drafts, polling and loaded videos survive tab switches. */}
+      <div role="tabpanel" hidden={tab !== 'studio'}>
+        <StudioTab />
+      </div>
+
       <div role="tabpanel" hidden={tab !== 'generate'}>
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
           <Composer prefill={prefill} onCreated={handleCreated} />

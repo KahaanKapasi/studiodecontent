@@ -195,3 +195,97 @@ export interface VideoGeneration {
   created_at: string
   completed_at: string | null
 }
+
+// ---- Video Studio (multi-stage engines, docs/10_Video_Studio_Engines.md) ----
+
+export type StudioFieldType =
+  | 'text'
+  | 'textarea'
+  | 'select'
+  | 'number'
+  | 'toggle'
+  | 'image'
+  | 'images'
+  | 'video'
+  | 'audio'
+
+export interface StudioFieldOption {
+  value: string
+  label: string
+}
+
+export interface StudioFieldSpec {
+  name: string
+  label: string
+  type: StudioFieldType
+  required: boolean
+  default?: unknown
+  options?: StudioFieldOption[]
+  min?: number
+  max?: number
+  help?: string
+}
+
+export interface StudioRecipeInfo {
+  id: string
+  label: string
+  description: string
+  configured: boolean
+  missing_keys: string[]
+  paid: boolean
+  fields: StudioFieldSpec[]
+}
+
+export interface StudioEngineInfo {
+  id: string
+  label: string
+  description: string
+  recipes: StudioRecipeInfo[]
+}
+
+export type StudioStatus =
+  | 'queued'
+  | 'planning'
+  | 'awaiting_approval'
+  | 'rendering'
+  | 'succeeded'
+  | 'failed'
+
+export interface StudioScene {
+  index: number
+  text: string
+  visual: string
+  duration_s: number
+}
+
+export interface StudioPlan {
+  summary: string
+  script?: string
+  scenes?: StudioScene[]
+  notes?: string
+}
+
+export interface StudioPreview {
+  name: string
+  label: string
+  kind: 'image' | 'audio' | 'video'
+}
+
+export interface StudioProject {
+  id: number
+  engine: string
+  recipe: string | null
+  title: string
+  status: StudioStatus
+  stage: string
+  progress: number
+  error: string | null
+  params: Record<string, unknown>
+  plan: StudioPlan | null
+  previews: StudioPreview[]
+  has_file: boolean
+  video_url: string | null
+  estimated_cost_usd: number | null
+  created_at: string
+  completed_at: string | null
+}

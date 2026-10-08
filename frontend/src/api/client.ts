@@ -12,6 +12,8 @@ import type {
   KpiSummary,
   PostDraft,
   Script,
+  StudioEngineInfo,
+  StudioProject,
   Template,
   TopicCandidate,
   TwitterMetricSnapshot,
@@ -32,13 +34,20 @@ export async function apiFetch(path: string, options?: RequestInit): Promise<Res
 
 export async function errorMessageFrom(res: Response): Promise<string> {
   const body = await res.text().catch(() => '')
-  let detail: string | undefined
+  let detail: unknown
   try {
     detail = JSON.parse(body)?.detail
   } catch {
     // not JSON — fall through to the raw body
   }
-  return detail || body || `Request failed (${res.status})`
+  if (typeof detail === 'string' && detail) return detail
+  if (Array.isArray(detail) && detail.length) {
+    // FastAPI 422 shape: [{ loc, msg }, ...]
+    return detail
+      .map((d) => (d && typeof d === 'object' && 'msg' in d ? String(d.msg) : String(d)))
+      .join('; ')
+  }
+  return body || `Request failed (${res.status})`
 }
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
@@ -125,6 +134,53 @@ export const videoApi = {
     if (!res.ok) throw new Error(await errorMessageFrom(res))
     return res.blob()
   },
+}
+
+async function blobRequest(path: string): Promise<Blob> {
+  const res = await apiFetch(path)
+  if (!res.ok) throw new Error(await errorMessageFrom(res))
+  return res.blob()
+}
+
+async function emptyRequest(path: string, method: string): Promise<void> {
+  const res = await apiFetch(path, { method })
+  if (!res.ok) throw new Error(await errorMessageFrom(res))
+}
+
+export interface CreateStudioProjectInput {
+  engine: string
+  recipe: string
+  /** Field values except files. */
+  params: Record<string, unknown>
+  autoApprove: boolean
+  /** Files keyed by FieldSpec name; an array repeats the field name (type `images`). */
+  files: Record<string, File | File[] | null | undefined>
+}
+
+export const studioApi = {
+  engines: () => request<StudioEngineInfo[]>(ENDPOINTS.studio.engines),
+  createProject: (input: CreateStudioProjectInput) => {
+    const form = new FormData()
+    form.append('engine', input.engine)
+    form.append('recipe', input.recipe)
+    form.append('params', JSON.stringify(input.params))
+    form.append('auto_approve', input.autoApprove ? 'true' : 'false')
+    for (const [name, value] of Object.entries(input.files)) {
+      if (!value) continue
+      for (const file of Array.isArray(value) ? value : [value]) form.append(name, file)
+    }
+    return request<StudioProject>(ENDPOINTS.studio.projects, { method: 'POST', body: form })
+  },
+  listProjects: (limit = 50) =>
+    request<StudioProject[]>(`${ENDPOINTS.studio.projects}?limit=${limit}`),
+  getProject: (id: number) => request<StudioProject>(ENDPOINTS.studio.project(id)),
+  approve: (id: number) => request<StudioProject>(ENDPOINTS.studio.approve(id), { method: 'POST' }),
+  replan: (id: number) => request<StudioProject>(ENDPOINTS.studio.replan(id), { method: 'POST' }),
+  retry: (id: number) => request<StudioProject>(ENDPOINTS.studio.retry(id), { method: 'POST' }),
+  deleteProject: (id: number) => emptyRequest(ENDPOINTS.studio.project(id), 'DELETE'),
+  /** The file / asset endpoints need the access header, so they are fetched as Blobs. */
+  fileBlob: (id: number) => blobRequest(ENDPOINTS.studio.file(id)),
+  assetBlob: (id: number, name: string) => blobRequest(ENDPOINTS.studio.asset(id, name)),
 }
 
 export const postsApi = {

@@ -1,6 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { videoApi } from '../../api/client'
-import type { VideoGeneration } from '../../types'
+
+/** The subset of a generation / studio project the hook needs. */
+export interface VideoSourceLike {
+  id: number
+  status: string
+  has_file: boolean
+  video_url: string | null
+}
+
+export interface VideoBlobOptions {
+  /** Fetches the authenticated file as a Blob (default: Clip generations). */
+  fetchBlob?: (id: number) => Promise<Blob>
+  /** Download filename (default: madridonomy-video-{id}.mp4). */
+  filename?: string
+}
 
 function saveBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob)
@@ -20,7 +34,8 @@ function saveBlob(blob: Blob, filename: string) {
  *   an object URL, cached for the life of the component and revoked on unmount.
  * Blobs are only fetched once `enabled` flips true (card scrolled into view).
  */
-export function useVideoBlob(gen: VideoGeneration, enabled: boolean) {
+export function useVideoBlob(gen: VideoSourceLike, enabled: boolean, opts: VideoBlobOptions = {}) {
+  const fetchBlob = opts.fetchBlob ?? videoApi.fetchFileBlob
   const [blobUrl, setBlobUrl] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [attempt, setAttempt] = useState(0)
@@ -35,8 +50,7 @@ export function useVideoBlob(gen: VideoGeneration, enabled: boolean) {
   useEffect(() => {
     if (!wantBlob) return
     let cancelled = false
-    videoApi
-      .fetchFileBlob(gen.id)
+    fetchBlob(gen.id)
       .then((blob) => {
         if (cancelled) return
         blobRef.current = blob
@@ -51,7 +65,7 @@ export function useVideoBlob(gen: VideoGeneration, enabled: boolean) {
       cancelled = true
     }
     // `attempt` re-triggers after a failed load
-  }, [wantBlob, gen.id, attempt])
+  }, [wantBlob, gen.id, attempt, fetchBlob])
 
   useEffect(
     () => () => {
@@ -63,7 +77,7 @@ export function useVideoBlob(gen: VideoGeneration, enabled: boolean) {
   )
 
   const download = useCallback(async () => {
-    const filename = `madridonomy-video-${gen.id}.mp4`
+    const filename = opts.filename ?? `madridonomy-video-${gen.id}.mp4`
     if (blobRef.current) return saveBlob(blobRef.current, filename)
     if (gen.video_url && !directFailed) {
       try {
@@ -76,8 +90,8 @@ export function useVideoBlob(gen: VideoGeneration, enabled: boolean) {
         return
       }
     }
-    saveBlob(await videoApi.fetchFileBlob(gen.id), filename)
-  }, [gen.id, gen.video_url, directFailed])
+    saveBlob(await fetchBlob(gen.id), filename)
+  }, [gen.id, gen.video_url, directFailed, opts.filename, fetchBlob])
 
   return {
     src: useDirect ? gen.video_url : blobUrl,
