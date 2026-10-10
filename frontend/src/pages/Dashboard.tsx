@@ -5,8 +5,9 @@ import { apiFetch, dashboardApi, errorMessageFrom } from '../api/client'
 import { ENDPOINTS } from '../api/endpoints'
 import CostedButton from '../components/cost/CostedButton'
 import SpendCard from '../components/cost/SpendCard'
+import type { InstagramMetricSnapshot } from '../types'
 
-async function refreshInstagram(): Promise<unknown> {
+async function refreshInstagram(): Promise<InstagramMetricSnapshot> {
   const res = await apiFetch(ENDPOINTS.dashboard.instagramRefresh, { method: 'POST' })
   if (!res.ok) throw new Error(await errorMessageFrom(res))
   return res.json()
@@ -119,12 +120,20 @@ export default function Dashboard() {
         {igRefreshMutation.isError && (
           <p className="mb-2 text-xs text-faint">{(igRefreshMutation.error as Error).message}</p>
         )}
+        {igRefreshMutation.data?.warning && (
+          <p role="status" className="mb-2 text-xs text-muted">
+            {igRefreshMutation.data.warning}
+          </p>
+        )}
         <div className="grid grid-cols-3 gap-4">
           <StatCard label="IG Followers" value={String(igStats?.followers ?? 0)} />
-          <StatCard label="IG Reach (30d)" value={String(igStats?.reach_30d ?? 0)} />
+          <StatCard
+            label="IG Reach (30d)"
+            value={igStats?.reach_30d != null ? igStats.reach_30d.toLocaleString() : '—'}
+          />
           <StatCard
             label="IG Engagement"
-            value={`${((igStats?.engagement_rate ?? 0) * 100).toFixed(1)}%`}
+            value={igStats?.engagement_rate != null ? `${(igStats.engagement_rate * 100).toFixed(1)}%` : '—'}
           />
         </div>
       </div>

@@ -32,6 +32,7 @@ export const ENDPOINTS = {
     generation: (id: number) => `/api/video/generations/${id}`,
     retryGeneration: (id: number) => `/api/video/generations/${id}/retry`,
     generationFile: (id: number) => `/api/video/generations/${id}/file`,
+    publishGenerationInstagram: (id: number) => `/api/video/generations/${id}/publish-instagram`,
   },
   studio: {
     engines: '/api/studio/engines',
@@ -41,6 +42,7 @@ export const ENDPOINTS = {
     replan: (id: number) => `/api/studio/projects/${id}/replan`,
     retry: (id: number) => `/api/studio/projects/${id}/retry`,
     file: (id: number) => `/api/studio/projects/${id}/file`,
+    publishInstagram: (id: number) => `/api/studio/projects/${id}/publish-instagram`,
     asset: (id: number, name: string) =>
       `/api/studio/projects/${id}/assets/${encodeURIComponent(name)}`,
   },

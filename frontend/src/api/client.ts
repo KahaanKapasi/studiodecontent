@@ -53,6 +53,11 @@ export async function errorMessageFrom(res: Response): Promise<string> {
   return body || `Request failed (${res.status})`
 }
 
+export interface InstagramPublishBody {
+  caption: string
+  share_to_feed: boolean
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await apiFetch(path, options)
   if (!res.ok) throw new Error(await errorMessageFrom(res))
@@ -125,6 +130,8 @@ export const videoApi = {
   listGenerations: (limit = 50) =>
     request<VideoGeneration[]>(`${ENDPOINTS.video.generations}?limit=${limit}`),
   getGeneration: (id: number) => request<VideoGeneration>(ENDPOINTS.video.generation(id)),
+  publishInstagram: (id: number, body: InstagramPublishBody) =>
+    request<VideoGeneration>(ENDPOINTS.video.publishGenerationInstagram(id), { method: 'POST', body: JSON.stringify(body) }),
   deleteGeneration: async (id: number): Promise<void> => {
     const res = await apiFetch(ENDPOINTS.video.generation(id), { method: 'DELETE' })
     if (!res.ok) throw new Error(await errorMessageFrom(res))
@@ -182,6 +189,8 @@ export const studioApi = {
   retry: (id: number) => request<StudioProject>(ENDPOINTS.studio.retry(id), { method: 'POST' }),
   deleteProject: (id: number) => emptyRequest(ENDPOINTS.studio.project(id), 'DELETE'),
   /** The file / asset endpoints need the access header, so they are fetched as Blobs. */
+  publishInstagram: (id: number, body: InstagramPublishBody) =>
+    request<StudioProject>(ENDPOINTS.studio.publishInstagram(id), { method: 'POST', body: JSON.stringify(body) }),
   fileBlob: (id: number) => blobRequest(ENDPOINTS.studio.file(id)),
   assetBlob: (id: number, name: string) => blobRequest(ENDPOINTS.studio.asset(id, name)),
 }

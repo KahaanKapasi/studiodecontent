@@ -6,6 +6,7 @@ import type { StudioEngineInfo, StudioProject } from '../../types'
 import { formatElapsed, formatUsd, formatWhen, parseServerDate, ratioValue } from '../video/format'
 import { useNow, useSeen } from '../video/hooks'
 import { useVideoBlob } from '../video/useVideoBlob'
+import InstagramPublish from '../video/InstagramPublish'
 import ReviewPanel from './ReviewPanel'
 import { isActiveStatus } from './status'
 import { StatusPill } from './StatusPill'
@@ -181,6 +182,15 @@ export default function ProjectCard({
       {review && <ReviewPanel project={project} />}
 
       {project.status === 'succeeded' && <Player project={project} seen={seen} />}
+
+      {project.status === 'succeeded' && (
+        <InstagramPublish
+          kind="studio"
+          id={project.id}
+          defaultCaption={project.plan?.summary || project.title}
+          initial={project}
+        />
+      )}
 
       {project.status === 'failed' && (
         <div role="alert" className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">

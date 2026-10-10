@@ -78,9 +78,23 @@ export interface InstagramMetricSnapshot {
   id: number
   captured_at: string
   followers: number
-  reach_30d: number
-  engagement_rate: number
+  reach_30d: number | null
+  /** Fraction (0.15 = 15%): total_interactions / reach over the last 30 days. */
+  engagement_rate: number | null
   top_post_ids: number[]
+  /** Only on the refresh response: set when reach/engagement couldn't be fetched. */
+  warning?: string | null
+}
+
+/** Reels publishing state carried by Studio projects and clip generations. */
+export type InstagramPublishStatus = 'publishing' | 'published' | 'failed'
+export interface InstagramPublishFields {
+  instagram_media_id?: string | null
+  instagram_permalink?: string | null
+  instagram_status?: InstagramPublishStatus | null
+  instagram_error?: string | null
+  /** Soft warnings (aspect ratio / length); only present on the publish response. */
+  instagram_warnings?: string[]
 }
 
 export interface TwitterMetricSnapshot {
@@ -177,7 +191,7 @@ export interface CreateGenerationRequest {
 
 export type GenerationStatus = 'queued' | 'running' | 'succeeded' | 'failed'
 
-export interface VideoGeneration {
+export interface VideoGeneration extends InstagramPublishFields {
   id: number
   prompt: string
   original_idea: string | null
@@ -273,7 +287,7 @@ export interface StudioPreview {
   kind: 'image' | 'audio' | 'video'
 }
 
-export interface StudioProject {
+export interface StudioProject extends InstagramPublishFields {
   id: number
   engine: string
   recipe: string | null

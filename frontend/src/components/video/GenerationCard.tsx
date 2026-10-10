@@ -11,6 +11,7 @@ import {
   truncate,
 } from './format'
 import { useNow, useSeen } from './hooks'
+import InstagramPublish from './InstagramPublish'
 import { useVideoBlob } from './useVideoBlob'
 
 const STATUS_STYLE: Record<GenerationStatus, string> = {
@@ -154,6 +155,15 @@ export default function GenerationCard({
             </div>
           )}
         </div>
+      )}
+
+      {gen.status === 'succeeded' && (
+        <InstagramPublish
+          kind="generation"
+          id={gen.id}
+          defaultCaption={gen.original_idea || truncate(gen.prompt, 180)}
+          initial={gen}
+        />
       )}
 
       {gen.status === 'failed' && (
