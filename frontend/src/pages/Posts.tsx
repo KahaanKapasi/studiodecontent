@@ -1,5 +1,5 @@
 import CostedButton from '../components/cost/CostedButton'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { postsApi } from '../api/client'
 import CarouselCanvas, { type CarouselCanvasHandle } from '../components/posts/CarouselCanvas'
@@ -8,6 +8,7 @@ import OpinionsPanel from '../components/posts/OpinionsPanel'
 import InstagramPreview from '../components/posts/InstagramPreview'
 import LightroomPanel from '../components/posts/LightroomPanel'
 import FramePanel from '../components/posts/FramePanel'
+import { prepareImage } from '../components/posts/imageSource'
 import { DEFAULT_FRAME, type Frame } from '../components/posts/frame'
 import { DEFAULT_ADJUSTMENTS, type Adjustments } from '../components/posts/adjustments'
 import { ASPECT_RATIOS, computePreviewSize, DEFAULT_ASPECT_RATIO, getAspectRatio } from '../components/posts/templates'
@@ -20,6 +21,11 @@ function dataUrlToBlob(dataUrl: string): Blob {
   const bytes = new Uint8Array(binary.length)
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
   return new Blob([bytes], { type: mime })
+}
+
+function isTypingTarget(target: EventTarget | null) {
+  const el = target as HTMLElement | null
+  return !!el?.tagName && (['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName) || el.isContentEditable)
 }
 
 function defaultTextPosition(aspectRatio: string) {
@@ -35,6 +41,8 @@ export default function Posts() {
   const [draftId, setDraftId] = useState<number | null>(null)
   const [manualText, setManualText] = useState('')
   const [imageFile, setImageFile] = useState<File | null>(null)
+  const imageFileRef = useRef<File | null>(null)
+  const [imageError, setImageError] = useState('')
   const [templateId, setTemplateId] = useState(1)
   const [aspectRatio, setAspectRatio] = useState(DEFAULT_ASPECT_RATIO)
   const [fontSize, setFontSize] = useState(48)
@@ -95,6 +103,42 @@ export default function Posts() {
     onError: (err: Error) => setPublishError(err.message),
   })
 
+  // Downscales (<= 2048 px) once, then either sets the background or — if one exists — adds a layer.
+  async function handleIncomingImage(file: File, asBackground = false) {
+    setImageError('')
+    try {
+      const prepared = await prepareImage(file)
+      if (asBackground || !imageFileRef.current) {
+        setImageFile(prepared)
+        setFrame(DEFAULT_FRAME)
+      } else {
+        await canvasRef.current?.addImageLayer(prepared)
+      }
+    } catch (err) {
+      setImageError(err instanceof Error ? err.message : 'Could not read that image')
+    }
+  }
+  const handleIncomingRef = useRef(handleIncomingImage)
+  useEffect(() => {
+    imageFileRef.current = imageFile
+    handleIncomingRef.current = handleIncomingImage
+  })
+
+  // Cmd/Ctrl+V anywhere on the page (outside inputs) pastes a clipboard image.
+  useEffect(() => {
+    function onPaste(e: ClipboardEvent) {
+      if (isTypingTarget(e.target)) return
+      const items = [...(e.clipboardData?.items ?? [])]
+      const item = items.find((it) => it.kind === 'file' && it.type.startsWith('image/'))
+      const file = item?.getAsFile() ?? [...(e.clipboardData?.files ?? [])].find((f) => f.type.startsWith('image/'))
+      if (!file) return
+      e.preventDefault()
+      void handleIncomingRef.current(file)
+    }
+    document.addEventListener('paste', onPaste)
+    return () => document.removeEventListener('paste', onPaste)
+  }, [])
+
   function handlePickSuggestion(draft: PostDraft) {
     setDraftId(draft.id)
     setManualText(draft.suggested_opinion_text ?? '')
@@ -123,10 +167,7 @@ export default function Posts() {
           onPickSuggestion={handlePickSuggestion}
           manualText={manualText}
           onManualTextChange={setManualText}
-          onImageSelected={(file) => {
-            setImageFile(file)
-            setFrame(DEFAULT_FRAME)
-          }}
+          onImageSelected={(file) => void handleIncomingImage(file, true)}
           onSuggestOpinions={(team) => suggestMutation.mutate(team)}
           isSuggesting={suggestMutation.isPending}
         />
@@ -164,8 +205,10 @@ export default function Posts() {
               adjustments={adjustments}
               frame={frame}
               onRender={setCanvasDataUrl}
+              onImageFile={(file) => void handleIncomingImage(file)}
             />
           </div>
+          {imageError && <p className="text-xs text-danger">{imageError}</p>}
 
           <FramePanel value={frame} onChange={setFrame} />
 

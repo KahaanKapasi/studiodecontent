@@ -1,6 +1,10 @@
+// VITE_API_BASE_URL=same-origin: the API serves this UI itself (self-hosted setup), so use relative URLs.
+const configuredBase = import.meta.env.VITE_API_BASE_URL
 export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ||
-  (import.meta.env.PROD ? 'https://contentstudio-be.onrender.com' : 'http://localhost:8000')
+  configuredBase === 'same-origin'
+    ? ''
+    : configuredBase ||
+      (import.meta.env.PROD ? 'https://contentstudio-be.onrender.com' : 'http://localhost:8000')
 
 export const ENDPOINTS = {
   auth: {
@@ -11,6 +15,8 @@ export const ENDPOINTS = {
     topics: '/api/discovery/topics',
     updateTopic: (id: number) => `/api/discovery/topics/${id}`,
     triggerScrape: '/api/discovery/scrape',
+    latestRun: '/api/discovery/runs/latest',
+    run: (id: number) => `/api/discovery/runs/${id}`,
   },
   articles: {
     list: '/api/articles',
@@ -50,6 +56,8 @@ export const ENDPOINTS = {
     estimate: '/api/costs/estimate',
     summary: (days: number) => `/api/costs/summary?days=${days}`,
     prices: '/api/costs/prices',
+    total: '/api/costs/total',
+    events: '/api/costs/events',
   },
   posts: {
     drafts: '/api/posts/drafts',
@@ -62,6 +70,7 @@ export const ENDPOINTS = {
       `/api/posts/render-preview?template_name=${encodeURIComponent(templateName)}&text=${encodeURIComponent(text)}&aspect_ratio=${encodeURIComponent(aspectRatio)}`,
     renderBackground: (templateName: string, aspectRatio: string) =>
       `/api/posts/render-background?template_name=${encodeURIComponent(templateName)}&aspect_ratio=${encodeURIComponent(aspectRatio)}`,
+    cutout: '/api/posts/cutout',
     uploadToHost: '/api/posts/upload-to-host',
     matchScrape: (team: string) => `/api/posts/match-scrape?team=${encodeURIComponent(team)}`,
     publish: (id: number) => `/api/posts/drafts/${id}/publish`,

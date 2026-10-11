@@ -1,8 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis } from 'recharts'
 import { costsApi } from '../../api/client'
 import type { PriceRow } from '../../types'
+import { openCostLog } from './costLogStore'
 import { usd } from './format'
 
 const SERVICE_LABELS: Record<string, string> = {
@@ -70,7 +72,8 @@ function PriceTable() {
 }
 
 export default function SpendCard() {
-  const [showPrices, setShowPrices] = useState(false)
+  const [searchParams] = useSearchParams()
+  const [showPrices, setShowPrices] = useState(searchParams.get('prices') === '1')
   const { data, isLoading, isError } = useQuery({
     queryKey: ['costs', 'summary', 30],
     queryFn: () => costsApi.summary(30),
@@ -84,6 +87,14 @@ export default function SpendCard() {
     <section className="mb-6 rounded-lg border border-line bg-surface p-4" aria-label="Spend">
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="text-sm font-semibold text-ink">Spend · last 30 days</h2>
+        <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={openCostLog}
+          className="min-h-8 text-xs font-medium text-accent hover:text-accent-hover"
+        >
+          Open cost log
+        </button>
         <button
           type="button"
           onClick={() => setShowPrices((v) => !v)}
@@ -92,6 +103,7 @@ export default function SpendCard() {
         >
           {showPrices ? 'Hide price table' : 'Price table & verified dates'}
         </button>
+        </div>
       </div>
 
       {isLoading && <p className="text-xs text-faint">Loading spend…</p>}

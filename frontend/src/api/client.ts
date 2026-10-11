@@ -3,8 +3,12 @@ import { authHeaders, setAccessPassword, UNAUTHORIZED_EVENT } from '../auth'
 import type {
   Article,
   CostEstimate,
+  CostEvent,
   CostSummary,
+  CostTotal,
+  DiscoveryRun,
   PriceRow,
+  ScrapeResponse,
   CreateGenerationRequest,
   ImprovePromptRequest,
   ImprovePromptResult,
@@ -74,11 +78,9 @@ export const discoveryApi = {
       method: 'PATCH',
       body: JSON.stringify({ status }),
     }),
-  triggerScrape: () =>
-    request<{ source_health: unknown[]; topics_created: number; error?: string }>(
-      ENDPOINTS.discovery.triggerScrape,
-      { method: 'POST' },
-    ),
+  triggerScrape: () => request<ScrapeResponse>(ENDPOINTS.discovery.triggerScrape, { method: 'POST' }),
+  latestRun: () => request<DiscoveryRun | null>(ENDPOINTS.discovery.latestRun),
+  run: (id: number) => request<DiscoveryRun>(ENDPOINTS.discovery.run(id)),
 }
 
 export const articlesApi = {
@@ -233,6 +235,14 @@ export const postsApi = {
     const blob = await res.blob()
     return URL.createObjectURL(blob)
   },
+  /** Subject cutout (PNG with alpha). The server caches by content hash; callers also cache per File. */
+  cutout: async (imageFile: File | Blob): Promise<Blob> => {
+    const form = new FormData()
+    form.append('image', imageFile)
+    const res = await apiFetch(ENDPOINTS.posts.cutout, { method: 'POST', body: form })
+    if (!res.ok) throw new Error(await errorMessageFrom(res))
+    return res.blob()
+  },
   uploadToHost: async (imageFile: File | Blob): Promise<{ url: string }> => {
     const form = new FormData()
     form.append('image', imageFile)
@@ -265,6 +275,11 @@ export const dashboardApi = {
     request<TwitterPostSuggestion>(ENDPOINTS.dashboard.postSuggestion(id), { method: 'POST' }),
 }
 
+/** Minutes east of UTC, so the backend's "today" is the viewer's local day. */
+function tzOffsetMinutes(): number {
+  return -new Date().getTimezoneOffset()
+}
+
 export const costsApi = {
   estimate: (action: string, params: Record<string, unknown> = {}) =>
     request<CostEstimate>(ENDPOINTS.costs.estimate, {
@@ -273,4 +288,10 @@ export const costsApi = {
     }),
   summary: (days = 30) => request<CostSummary>(ENDPOINTS.costs.summary(days)),
   prices: () => request<{ as_of: string; prices: PriceRow[] }>(ENDPOINTS.costs.prices),
+  total: () => request<CostTotal>(`${ENDPOINTS.costs.total}?tz_offset_minutes=${tzOffsetMinutes()}`),
+  events: (params: { limit?: number; before_id?: number; days?: number } = {}) => {
+    const qs = new URLSearchParams({ tz_offset_minutes: String(tzOffsetMinutes()) })
+    for (const [key, value] of Object.entries(params)) if (value !== undefined) qs.set(key, String(value))
+    return request<CostEvent[]>(`${ENDPOINTS.costs.events}?${qs}`)
+  },
 }

@@ -361,3 +361,63 @@ export interface PriceRow {
   note: string | null
   upcoming: { effective_from: string; usd: number | null }[]
 }
+
+// --- Global cost tracker ---
+
+export interface CostTotal {
+  all_time_usd: number
+  today_usd: number
+  last_7d_usd: number
+  last_30d_usd: number
+  last_event_id: number | null
+  count: number
+  any_estimates: boolean
+}
+
+export interface CostEvent {
+  id: number
+  created_at: string
+  action: string
+  label: string
+  actual_usd: number | null
+  est_low_usd: number | null
+  est_high_usd: number | null
+  /** Best-known amount: actual where measured, else the midpoint of the estimate. */
+  usd: number
+  is_estimate: boolean
+  running_total_usd: number
+}
+
+// --- Discovery runs ---
+
+export type DiscoveryRunStatus = 'generating' | 'done' | 'skipped' | 'error'
+
+export interface SourceHealth {
+  source: string
+  ok: boolean
+  item_count: number
+  error: string | null
+}
+
+export interface DiscoveryRun {
+  id: number
+  started_at: string
+  finished_at: string | null
+  status: DiscoveryRunStatus
+  new_items: number
+  topics_created: number
+  error: string | null
+  source_health: SourceHealth[]
+  cost_usd: number | null
+  elapsed_seconds: number
+}
+
+export interface ScrapeResponse {
+  run_id: number
+  status: DiscoveryRunStatus
+  new_items: number
+  source_health: SourceHealth[]
+  topics_created: number
+  error?: string
+  message?: string
+}
