@@ -5,6 +5,7 @@ const NAV_ITEMS = [
   { to: '/discovery', label: 'Discovery' },
   { to: '/articles', label: 'Articles' },
   { to: '/video', label: 'Video' },
+  { to: '/genjutsu', label: 'Genjutsu' },
   { to: '/posts', label: 'Posts' },
   { to: '/dashboard', label: 'Dashboard' },
 ]
