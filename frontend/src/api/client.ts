@@ -1,4 +1,5 @@
 import { API_BASE_URL, ENDPOINTS } from './endpoints'
+import { getWorkspace } from '../workspace'
 import { authHeaders, setAccessPassword, UNAUTHORIZED_EVENT } from '../auth'
 import type {
   Article,
@@ -69,8 +70,9 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export const discoveryApi = {
-  listTopics: (params?: { status?: string; suitable_for?: string }) => {
-    const qs = new URLSearchParams(params as Record<string, string>).toString()
+  listTopics: (params?: { status?: string; suitable_for?: string; workspace?: string }) => {
+    // Pages that start from a topic (Articles, Video, ...) follow the workspace chosen in Discovery.
+    const qs = new URLSearchParams({ workspace: getWorkspace(), ...params } as Record<string, string>).toString()
     return request<TopicCandidate[]>(`${ENDPOINTS.discovery.topics}${qs ? `?${qs}` : ''}`)
   },
   updateTopicStatus: (id: number, status: string) =>
@@ -78,8 +80,10 @@ export const discoveryApi = {
       method: 'PATCH',
       body: JSON.stringify({ status }),
     }),
-  triggerScrape: () => request<ScrapeResponse>(ENDPOINTS.discovery.triggerScrape, { method: 'POST' }),
-  latestRun: () => request<DiscoveryRun | null>(ENDPOINTS.discovery.latestRun),
+  triggerScrape: (workspace: string = getWorkspace()) =>
+    request<ScrapeResponse>(`${ENDPOINTS.discovery.triggerScrape}?workspace=${workspace}`, { method: 'POST' }),
+  latestRun: (workspace: string = getWorkspace()) =>
+    request<DiscoveryRun | null>(`${ENDPOINTS.discovery.latestRun}?workspace=${workspace}`),
   run: (id: number) => request<DiscoveryRun>(ENDPOINTS.discovery.run(id)),
 }
 

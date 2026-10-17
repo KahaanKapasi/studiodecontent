@@ -3,18 +3,26 @@ import { useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { discoveryApi } from '../api/client'
 import TopicList from '../components/TopicList'
+import WorkspaceSwitcher from '../components/WorkspaceSwitcher'
+import { useWorkspace, type WorkspaceId } from '../workspace'
 import CostedButton from '../components/cost/CostedButton'
 import type { DiscoveryRun, ScrapeResponse, SourceHealth, SuitableFor, TopicCandidate, TopicStatus } from '../types'
 
 export default function Discovery() {
+  const [workspace] = useWorkspace()
+  // Remounting per workspace resets the run/progress state, so each workspace shows only its own scrape.
+  return <DiscoveryWorkspace key={workspace} workspace={workspace} />
+}
+
+function DiscoveryWorkspace({ workspace }: { workspace: WorkspaceId }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [statusFilter, setStatusFilter] = useState<TopicStatus | 'all'>('all')
   const [suitableFilter, setSuitableFilter] = useState<SuitableFor | 'all'>('all')
 
   const { data: topics = [], isLoading, isError } = useQuery({
-    queryKey: ['discovery', 'topics'],
-    queryFn: () => discoveryApi.listTopics(),
+    queryKey: ['discovery', 'topics', workspace],
+    queryFn: () => discoveryApi.listTopics({ workspace }),
   })
 
   // Collection returns in a few seconds; topic generation continues server-side and is polled via the run.
@@ -24,7 +32,7 @@ export default function Discovery() {
   const [now, setNow] = useState(() => Date.now())
 
   const scrapeMutation = useMutation({
-    mutationFn: discoveryApi.triggerScrape,
+    mutationFn: () => discoveryApi.triggerScrape(workspace),
     onMutate: () => setStartedAt(Date.now()),
     onSuccess: (res) => {
       setFirst(res)
@@ -35,8 +43,8 @@ export default function Discovery() {
 
   // After a reload, pick a still-running generation back up.
   const { data: latest, dataUpdatedAt: latestAt } = useQuery({
-    queryKey: ['discovery', 'run', 'latest'],
-    queryFn: discoveryApi.latestRun,
+    queryKey: ['discovery', 'run', 'latest', workspace],
+    queryFn: () => discoveryApi.latestRun(workspace),
     staleTime: Infinity,
   })
   const resumed = startedRunId === null && latest?.status === 'generating' ? latest : null
@@ -97,6 +105,7 @@ export default function Discovery() {
         <div>
           <h1 className="text-xl font-semibold text-ink">Discovery</h1>
           <p className="mt-1 text-sm text-faint">Topic candidates surfaced from scraping.</p>
+          <WorkspaceSwitcher />
         </div>
         <CostedButton
           action="discovery.scrape"
