@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { to: '/genjutsu', label: 'Genjutsu' },
   { to: '/posts', label: 'Posts' },
   { to: '/dashboard', label: 'Dashboard' },
+  { to: '/footonomy', label: 'Footonomy' },
 ]
 
 export default function Sidebar() {

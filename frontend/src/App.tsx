@@ -9,6 +9,7 @@ const Video = lazy(() => import('./pages/Video'))
 const Genjutsu = lazy(() => import('./pages/Genjutsu'))
 const Posts = lazy(() => import('./pages/Posts'))
 const Dashboard = lazy(() => import('./pages/Dashboard'))
+const Footonomy = lazy(() => import('./pages/Footonomy'))
 
 export default function App() {
   return (
@@ -22,6 +23,7 @@ export default function App() {
           <Route path="/genjutsu" element={<Genjutsu />} />
           <Route path="/posts" element={<Posts />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/footonomy" element={<Footonomy />} />
           <Route path="*" element={<Navigate to="/discovery" replace />} />
         </Route>
       </Routes>

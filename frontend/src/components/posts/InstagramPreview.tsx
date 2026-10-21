@@ -1,6 +1,12 @@
+import { useState } from 'react'
+
 interface InstagramPreviewProps {
-  canvasDataUrl: string | null
+  /** One image per carousel slide (a single image = a plain post). */
+  images: string[]
   caption: string
+  /** Design width / height. Instagram crops anything outside 4:5 .. 1.91:1 in the feed. */
+  aspect?: number
+  loading?: boolean
 }
 
 const HeartIcon = () => (
@@ -25,7 +31,10 @@ const BookmarkIcon = () => (
   </svg>
 )
 
-export default function InstagramPreview({ canvasDataUrl, caption }: InstagramPreviewProps) {
+export default function InstagramPreview({ images, caption, aspect = 1, loading }: InstagramPreviewProps) {
+  const [index, setIndex] = useState(0)
+  const i = Math.min(index, Math.max(0, images.length - 1))
+  const feedAspect = Math.min(1.91, Math.max(0.8, aspect))
   return (
     <div className="w-80 shrink-0 overflow-hidden rounded-xl border border-neutral-800 bg-black">
       <div className="flex items-center gap-2 px-3 py-2.5">
@@ -33,28 +42,50 @@ export default function InstagramPreview({ canvasDataUrl, caption }: InstagramPr
         <div className="text-sm font-semibold text-neutral-100">madridonomy</div>
       </div>
 
-      <div className="aspect-square w-full bg-neutral-900">
-        {canvasDataUrl ? (
-          <img src={canvasDataUrl} alt="Post preview" className="h-full w-full object-cover" />
+      <div className="relative w-full bg-neutral-900" style={{ aspectRatio: String(feedAspect) }}>
+        {images[i] ? (
+          <img src={images[i]} alt={`Slide ${i + 1} preview`} className="h-full w-full object-cover" />
         ) : (
-          <div className="flex h-full items-center justify-center text-xs text-neutral-600">
-            Canvas preview will appear here
-          </div>
+          <div className="flex h-full items-center justify-center text-xs text-neutral-500">{loading ? 'Rendering preview...' : 'Nothing to preview yet'}</div>
+        )}
+        {images.length > 1 && (
+          <>
+            <span className="absolute right-2 top-2 rounded-full bg-black/60 px-2 py-0.5 text-[11px] text-white tabular-nums">
+              {i + 1}/{images.length}
+            </span>
+            {i > 0 && (
+              <button type="button" aria-label="Previous slide" onClick={() => setIndex(i - 1)} className="absolute left-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-black">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="m15 5-7 7 7 7" /></svg>
+              </button>
+            )}
+            {i < images.length - 1 && (
+              <button type="button" aria-label="Next slide" onClick={() => setIndex(i + 1)} className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-black">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="m9 5 7 7-7 7" /></svg>
+              </button>
+            )}
+          </>
         )}
       </div>
 
-      <div className="flex items-center justify-between px-3 py-2.5 text-neutral-100">
+      <div className="relative flex items-center justify-between px-3 py-2.5 text-neutral-100">
         <div className="flex items-center gap-3">
           <HeartIcon />
           <CommentIcon />
           <ShareIcon />
         </div>
+        {images.length > 1 && (
+          <div className="absolute left-1/2 flex -translate-x-1/2 gap-1" aria-hidden>
+            {images.map((_, n) => (
+              <span key={n} className={`h-1.5 w-1.5 rounded-full ${n === i ? 'bg-sky-400' : 'bg-neutral-600'}`} />
+            ))}
+          </div>
+        )}
         <BookmarkIcon />
       </div>
 
       <div className="px-3 pb-3 text-sm text-neutral-200">
         <span className="font-semibold">madridonomy</span>{' '}
-        <span className="text-neutral-300">{caption || 'Your caption will show here…'}</span>
+        <span className="text-neutral-300">{caption || 'Your caption will show here...'}</span>
       </div>
     </div>
   )

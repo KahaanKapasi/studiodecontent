@@ -1,9 +1,20 @@
 import { Suspense } from 'react'
-import { Outlet } from 'react-router-dom'
+import { Outlet, useLocation } from 'react-router-dom'
 import CostTracker from '../components/cost/CostTracker'
 import Sidebar from './Sidebar'
 
 export default function AppShell() {
+  const { pathname } = useLocation()
+  // The Posts editor is a full-screen workspace with its own top bar (it carries the nav menu and cost pill).
+  if (pathname.startsWith('/posts')) {
+    return (
+      <div className="h-dvh bg-app text-ink">
+        <Suspense fallback={<p className="p-6 text-sm text-faint">Loading editor...</p>}>
+          <Outlet />
+        </Suspense>
+      </div>
+    )
+  }
   return (
     <div className="flex h-dvh flex-col bg-app text-ink md:flex-row">
       <Sidebar />
