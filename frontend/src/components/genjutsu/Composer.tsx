@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { genjutsuApi, type GenjutsuInfo } from '../../api/genjutsu'
+import { genjutsuApi, type GenjutsuInfo, type GenjutsuModelInfo } from '../../api/genjutsu'
 import CostedButton from '../cost/CostedButton'
 import { useCostEstimate } from '../cost/useCostEstimate'
 import Segmented from '../video/Segmented'
@@ -20,6 +20,15 @@ function isTyping(target: EventTarget | null) {
   return target instanceof HTMLElement && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
 }
 
+const FALLBACK_RESOLUTIONS = [{ id: '480p', price_per_second_usd: 0.318 }, { id: '720p', price_per_second_usd: 0.681 }, { id: '1080p', price_per_second_usd: 1.632 }]
+const FALLBACK_MODELS: GenjutsuModelInfo[] = [
+  { id: 'genjutsu', label: 'Genjutsu', summary: 'Full quality. Up to 30 s of source video, billed per input second.', max_source_seconds: 30, resolutions: FALLBACK_RESOLUTIONS },
+  {
+    id: 'light', label: 'Genjutsu Light', summary: 'About 3x cheaper, lower fidelity. Only the first 15 s of the source is used.', max_source_seconds: 15,
+    resolutions: [{ id: '480p', price_per_second_usd: 0.05 }, { id: '720p', price_per_second_usd: 0.1 }, { id: '1080p', price_per_second_usd: 0.2 }],
+  },
+]
+
 export default function Composer({ info }: { info: GenjutsuInfo | undefined }) {
   const queryClient = useQueryClient()
   const limits = info?.limits ?? { min_video_seconds: 4, max_billed_seconds: 30, max_images: 8 }
@@ -28,6 +37,7 @@ export default function Composer({ info }: { info: GenjutsuInfo | undefined }) {
   const [photos, setPhotos] = useState<Photo[]>([])
   const [prompt, setPrompt] = useState('')
   const [resolution, setResolution] = useState('720p')
+  const [modelId, setModelId] = useState('genjutsu')
   const [dragOver, setDragOver] = useState<'video' | 'photos' | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const videoInput = useRef<HTMLInputElement>(null)
@@ -100,9 +110,14 @@ export default function Composer({ info }: { info: GenjutsuInfo | undefined }) {
   }, [])
 
   const tooShort = duration !== null && duration < limits.min_video_seconds
-  const billed = duration !== null ? Math.min(limits.max_billed_seconds, Math.max(1, Math.ceil(duration - 1e-9))) : null
-  const perSecond = info?.resolutions.find((r) => r.id === resolution)?.price_per_second_usd
-  const costParams = { duration_seconds: duration ?? undefined, resolution }
+  const models = info?.models ?? FALLBACK_MODELS
+  const model = models.find((m) => m.id === modelId) ?? models[0]
+  const isLight = model.id === 'light'
+  // Mirrors the backend: Genjutsu bills the input seconds; Light bills output (max 15 s) plus input seconds.
+  const whole = duration !== null ? Math.max(1, Math.ceil(duration - 1e-9)) : null
+  const billed = whole === null ? null : isLight ? Math.min(model.max_source_seconds, whole) + Math.min(limits.max_billed_seconds, whole) : Math.min(limits.max_billed_seconds, whole)
+  const perSecond = model.resolutions.find((r) => r.id === resolution)?.price_per_second_usd
+  const costParams = { duration_seconds: duration ?? undefined, resolution, model: model.id }
   const { estimate } = useCostEstimate('genjutsu.motion_transfer', costParams)
 
   const create = useMutation({
@@ -139,6 +154,7 @@ export default function Composer({ info }: { info: GenjutsuInfo | undefined }) {
     photos.forEach((p) => form.append('images', p.file))
     form.append('prompt', prompt)
     form.append('resolution', resolution)
+    form.append('model', model.id)
     form.append('confirm_cost_usd', String(estimate.high_usd))
     create.mutate(form)
   }
@@ -298,13 +314,30 @@ export default function Composer({ info }: { info: GenjutsuInfo | undefined }) {
       </div>
 
       <div>
-        <span className={fieldLabel}>4. Output quality</span>
+        <span className={fieldLabel}>4. Model</span>
+        <Segmented
+          ariaLabel="Genjutsu model"
+          value={model.id}
+          onChange={setModelId}
+          layout="chips"
+          options={models.map((m) => ({ value: m.id, label: m.label }))}
+        />
+        <p className={helpText}>{model.summary}</p>
+        {isLight && duration !== null && duration > model.max_source_seconds && (
+          <p className={helpText}>
+            Your video is {Math.round(duration)} s; Light only uses the first {model.max_source_seconds} s of it. Switch to Genjutsu for the whole clip.
+          </p>
+        )}
+      </div>
+
+      <div>
+        <span className={fieldLabel}>5. Output quality</span>
         <Segmented
           ariaLabel="Output resolution"
           value={resolution}
           onChange={setResolution}
           layout="chips"
-          options={(info?.resolutions ?? [{ id: '480p', price_per_second_usd: 0.318 }, { id: '720p', price_per_second_usd: 0.681 }, { id: '1080p', price_per_second_usd: 1.632 }]).map((r) => ({
+          options={model.resolutions.map((r) => ({
             value: r.id,
             label: `${r.id} · $${r.price_per_second_usd.toFixed(3)}/s`,
           }))}
@@ -312,7 +345,10 @@ export default function Composer({ info }: { info: GenjutsuInfo | undefined }) {
         <p className={helpText}>
           {billed !== null && perSecond !== undefined && estimate
             ? `Your video is billed as ${billed} s × $${perSecond.toFixed(3)} = ${usd(estimate.high_usd)}. `
-            : 'Billed per second of your source video, rounded up. '}
+            : isLight
+              ? 'Billed per second of output plus source video. '
+              : 'Billed per second of your source video, rounded up. '}
+          {isLight ? 'Light’s price is unconfirmed; check your first receipt. ' : ''}
           Cheaper tiers are fine for a first try.
         </p>
       </div>

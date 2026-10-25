@@ -87,6 +87,7 @@ export default function JobCard({ job }: { job: GenjutsuJob }) {
           {status.label}
         </span>
         <Chip>{job.resolution}</Chip>
+        {job.model === 'light' && <Chip>Light</Chip>}
         {job.billed_seconds != null && <Chip>{`${job.billed_seconds} s`}</Chip>}
         {job.est_cost_usd != null && <Chip>{formatUsd(job.est_cost_usd)}</Chip>}
         <span className="ml-auto text-xs text-faint">{formatWhen(job.created_at)}</span>
@@ -121,7 +122,7 @@ export default function JobCard({ job }: { job: GenjutsuJob }) {
       {(job.status === 'failed' || job.status === 'canceled') && (
         <CostedButton
           action="genjutsu.motion_transfer"
-          params={{ duration_seconds: job.input_seconds ?? undefined, resolution: job.resolution }}
+          params={{ duration_seconds: job.input_seconds ?? undefined, resolution: job.resolution, model: job.model }}
           onClick={() => retry.mutate()}
           disabled={retry.isPending}
           className={primaryBtn}

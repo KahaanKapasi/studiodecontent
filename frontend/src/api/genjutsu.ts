@@ -6,6 +6,7 @@ export interface GenjutsuJob {
   id: number
   prompt: string | null
   resolution: string
+  model: string
   status: GenjutsuStatus
   error: string | null
   video_name: string | null
@@ -19,7 +20,17 @@ export interface GenjutsuJob {
   completed_at: string | null
 }
 
+export interface GenjutsuModelInfo {
+  id: string
+  label: string
+  summary: string
+  max_source_seconds: number
+  resolutions: { id: string; price_per_second_usd: number }[]
+}
+
 export interface GenjutsuInfo {
+  default_model: string
+  models: GenjutsuModelInfo[]
   configured: boolean
   missing_keys: string[]
   model: string
